@@ -9,6 +9,8 @@ import { HealthCheckEntityType } from '../health-check-log/entities/health-check
 import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
 import { DeploymentSnapshotsService } from '../deployment-snapshots/deployment-snapshots.service';
 import { parseDockerInspectOutput } from '../deployment-snapshots/docker-inspect-parser';
+import { AlertEvaluationService } from '../alerts/alert-evaluation.service';
+import { AlertEntityType } from '../alerts/entities/alert-rule.entity';
 import { classifyContainerStatus } from './container-status-classifier';
 import { DockerPsContainer, parseDockerPsOutput, splitImageAndTag } from './docker-ps-parser';
 import { Service, ServiceStatus } from './entities/service.entity';
@@ -36,6 +38,7 @@ export class ServicesSyncService {
     private readonly deploymentSnapshotsService: DeploymentSnapshotsService,
     private readonly sshConnectionService: SshConnectionService,
     private readonly cryptoService: CryptoService,
+    private readonly alertEvaluationService: AlertEvaluationService,
   ) {}
 
   async sync(host: Host, dockerPsResult: SshCommandResult): Promise<void> {
@@ -82,6 +85,8 @@ export class ServicesSyncService {
       });
     }
 
+    const previousStatus = service.status ?? ServiceStatus.UNKNOWN;
+
     service.containerName = container.names;
     service.image = image;
     service.currentTag = tag;
@@ -102,6 +107,14 @@ export class ServicesSyncService {
         status: container.status,
         ports: container.ports,
       },
+    });
+
+    await this.alertEvaluationService.evaluateTransition({
+      orgId: host.orgId,
+      entityType: AlertEntityType.SERVICE,
+      entityId: saved.id,
+      previousStatus,
+      newStatus: saved.status,
     });
 
     await this.captureSnapshotIfImageChanged(host, saved, container);

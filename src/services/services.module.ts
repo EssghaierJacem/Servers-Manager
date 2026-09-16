@@ -10,6 +10,7 @@ import { HealthCheckLogModule } from '../health-check-log/health-check-log.modul
 import { HostsModule } from '../hosts/hosts.module';
 import { SshModule } from '../ssh/ssh.module';
 import { DeploymentSnapshotsModule } from '../deployment-snapshots/deployment-snapshots.module';
+import { AlertsModule } from '../alerts/alerts.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DeploymentSnapshotsModule } from '../deployment-snapshots/deployment-sn
     HostsModule,
     SshModule,
     DeploymentSnapshotsModule,
+    AlertsModule,
   ],
   controllers: [ServicesController, HostServicesController, ServiceSnapshotsController],
   providers: [ServicesService, ServicesSyncService],

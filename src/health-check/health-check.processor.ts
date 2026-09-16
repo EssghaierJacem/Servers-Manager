@@ -11,6 +11,8 @@ import { HealthCheckEntityType } from '../health-check-log/entities/health-check
 import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
 import { enqueuePerEntityJobs } from '../common/bullmq/fan-out.util';
 import { ServicesSyncService } from '../services/services-sync.service';
+import { AlertEvaluationService } from '../alerts/alert-evaluation.service';
+import { AlertEntityType } from '../alerts/entities/alert-rule.entity';
 import { HealthCheckJobData } from './health-check-job.interface';
 import {
   HEALTH_CHECK_QUEUE,
@@ -43,6 +45,7 @@ export class HealthCheckProcessor extends WorkerHost {
     private readonly cryptoService: CryptoService,
     private readonly sshConnectionService: SshConnectionService,
     private readonly servicesSyncService: ServicesSyncService,
+    private readonly alertEvaluationService: AlertEvaluationService,
     @InjectQueue(HEALTH_CHECK_QUEUE)
     private readonly healthCheckQueue: Queue<HealthCheckJobData>,
   ) {
@@ -78,6 +81,7 @@ export class HealthCheckProcessor extends WorkerHost {
       return;
     }
 
+    const previousStatus = host.status;
     const { outcome, sshResults } = await this.runCheck(host);
 
     await this.healthCheckLogService.write({
@@ -92,6 +96,14 @@ export class HealthCheckProcessor extends WorkerHost {
     await this.hostRepository.save(host);
 
     this.logger.debug(`Host ${host.id} (${host.name}) checked -> ${outcome.status}`);
+
+    await this.alertEvaluationService.evaluateTransition({
+      orgId: host.orgId,
+      entityType: AlertEntityType.HOST,
+      entityId: host.id,
+      previousStatus,
+      newStatus: host.status,
+    });
 
     // The docker ps -a output was already fetched above in the same SSH
     // session as the uptime check - reuse it for the service sync rather

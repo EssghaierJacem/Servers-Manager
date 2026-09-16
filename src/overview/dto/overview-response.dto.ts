@@ -54,4 +54,13 @@ export class OverviewResponseDto {
       'Services with unknown status (container missing from the last sync, or unparseable docker ps status)',
   })
   services_unknown: number;
+
+  @ApiProperty()
+  idle_hosts_count: number;
+
+  @ApiProperty()
+  orphaned_domains_count: number;
+
+  @ApiProperty()
+  orphaned_hosts_count: number;
 }

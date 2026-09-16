@@ -13,6 +13,7 @@ import { ServicesModule } from '../services/services.module';
 import { DeploymentSnapshotsModule } from '../deployment-snapshots/deployment-snapshots.module';
 import { HealthCheckLogModule } from '../health-check-log/health-check-log.module';
 import { SshModule } from '../ssh/ssh.module';
+import { AlertsModule } from '../alerts/alerts.module';
 import { ROLLBACK_QUEUE } from './rollback.constants';
 
 @Module({
@@ -22,6 +23,7 @@ import { ROLLBACK_QUEUE } from './rollback.constants';
     DeploymentSnapshotsModule,
     HealthCheckLogModule,
     SshModule,
+    AlertsModule,
     BullModule.registerQueue({
       name: ROLLBACK_QUEUE,
       defaultJobOptions: { removeOnComplete: true, removeOnFail: 50 },

@@ -17,6 +17,8 @@ import { DomainCheckModule } from './domain-check/domain-check.module';
 import { ServicesModule } from './services/services.module';
 import { DeploymentSnapshotsModule } from './deployment-snapshots/deployment-snapshots.module';
 import { RollbackModule } from './rollback/rollback.module';
+import { AlertsModule } from './alerts/alerts.module';
+import { InsightsModule } from './insights/insights.module';
 import { OverviewModule } from './overview/overview.module';
 import { Organization } from './organizations/entities/organization.entity';
 import { User } from './users/entities/user.entity';
@@ -27,6 +29,9 @@ import { SSLCertificate } from './domains/entities/ssl-certificate.entity';
 import { Service } from './services/entities/service.entity';
 import { DeploymentSnapshot } from './deployment-snapshots/entities/deployment-snapshot.entity';
 import { RollbackEvent } from './rollback/entities/rollback-event.entity';
+import { AlertRule } from './alerts/entities/alert-rule.entity';
+import { AlertLog } from './alerts/entities/alert-log.entity';
+import { InsightState } from './insights/entities/insight-state.entity';
 
 @Module({
   imports: [
@@ -50,6 +55,9 @@ import { RollbackEvent } from './rollback/entities/rollback-event.entity';
           Service,
           DeploymentSnapshot,
           RollbackEvent,
+          AlertRule,
+          AlertLog,
+          InsightState,
         ],
         synchronize: false,
         autoLoadEntities: true,
@@ -77,6 +85,8 @@ import { RollbackEvent } from './rollback/entities/rollback-event.entity';
     ServicesModule,
     DeploymentSnapshotsModule,
     RollbackModule,
+    AlertsModule,
+    InsightsModule,
     OverviewModule,
   ],
 })
