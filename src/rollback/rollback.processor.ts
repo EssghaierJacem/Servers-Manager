@@ -13,6 +13,8 @@ import { HealthCheckEntityType } from '../health-check-log/entities/health-check
 import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
 import { DeploymentSnapshot } from '../deployment-snapshots/entities/deployment-snapshot.entity';
 import { DeploymentSnapshotsService } from '../deployment-snapshots/deployment-snapshots.service';
+import { AlertEvaluationService } from '../alerts/alert-evaluation.service';
+import { AlertEntityType } from '../alerts/entities/alert-rule.entity';
 import { buildDockerRunCommand } from './docker-run-command.builder';
 import {
   RollbackEvent,
@@ -48,6 +50,7 @@ export class RollbackProcessor extends WorkerHost {
     private readonly cryptoService: CryptoService,
     private readonly sshConnectionService: SshConnectionService,
     private readonly healthCheckLogService: HealthCheckLogService,
+    private readonly alertEvaluationService: AlertEvaluationService,
   ) {
     super();
   }
@@ -72,7 +75,7 @@ export class RollbackProcessor extends WorkerHost {
 
     const host = await this.hostRepository.findOne({ where: { id: service.hostId } });
     if (!host) {
-      await this.fail(event, 'Host no longer exists');
+      await this.fail(event, 'Host no longer exists', service.orgId);
       return;
     }
 
@@ -80,7 +83,7 @@ export class RollbackProcessor extends WorkerHost {
       where: { id: event.toSnapshotId },
     });
     if (!targetSnapshot) {
-      await this.fail(event, 'Target snapshot no longer exists');
+      await this.fail(event, 'Target snapshot no longer exists', service.orgId);
       return;
     }
 
@@ -88,7 +91,11 @@ export class RollbackProcessor extends WorkerHost {
     try {
       privateKey = this.cryptoService.decrypt(host.sshKeyEncrypted);
     } catch (error) {
-      await this.fail(event, `Failed to decrypt SSH key: ${(error as Error).message}`);
+      await this.fail(
+        event,
+        `Failed to decrypt SSH key: ${(error as Error).message}`,
+        service.orgId,
+      );
       return;
     }
 
@@ -112,7 +119,11 @@ export class RollbackProcessor extends WorkerHost {
           ],
         );
       } catch (error) {
-        await this.fail(event, `SSH connection to host failed: ${(error as Error).message}`);
+        await this.fail(
+          event,
+          `SSH connection to host failed: ${(error as Error).message}`,
+          service.orgId,
+        );
         return;
       }
 
@@ -126,6 +137,7 @@ export class RollbackProcessor extends WorkerHost {
         await this.fail(
           event,
           `docker run failed: ${runResult.stderr || runResult.stdout || 'unknown error'}`,
+          service.orgId,
         );
         return;
       }
@@ -148,6 +160,7 @@ export class RollbackProcessor extends WorkerHost {
         await this.fail(
           event,
           `Post-rollback health check failed: container status is "${newStatus}"`,
+          service.orgId,
         );
         return;
       }
@@ -204,16 +217,30 @@ export class RollbackProcessor extends WorkerHost {
     );
   }
 
-  private async fail(event: RollbackEvent, reason: string): Promise<void> {
+  private async fail(event: RollbackEvent, reason: string, orgId?: string): Promise<void> {
     this.logger.error(`Rollback ${event.id} failed: ${reason}`);
     await this.appendLog(event, {
       timestamp: new Date().toISOString(),
       step: 'failure',
       message: reason,
     });
+    const previousStatus = event.status;
     event.status = RollbackEventStatus.FAILED;
     event.completedAt = new Date();
     await this.rollbackEventRepository.save(event);
+
+    // orgId is unavailable in the handful of very-early failure paths
+    // (the service/host row backing this event is already gone) - alerting
+    // is skipped there rather than guessed at.
+    if (orgId) {
+      await this.alertEvaluationService.evaluateTransition({
+        orgId,
+        entityType: AlertEntityType.ROLLBACK_EVENT,
+        entityId: event.id,
+        previousStatus,
+        newStatus: event.status,
+      });
+    }
   }
 
   private async appendLog(event: RollbackEvent, entry: RollbackLogEntry): Promise<void> {

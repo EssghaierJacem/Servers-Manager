@@ -10,6 +10,8 @@ import { HealthCheckEntityType } from '../health-check-log/entities/health-check
 import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
 import { Domain, DomainDnsStatus } from '../domains/entities/domain.entity';
 import { SSLCertificate } from '../domains/entities/ssl-certificate.entity';
+import { AlertEvaluationService } from '../alerts/alert-evaluation.service';
+import { AlertEntityType } from '../alerts/entities/alert-rule.entity';
 import { performDnsCheck } from './checks/dns-check';
 import { performWhoisLookup } from './checks/whois-check';
 import { performTlsCheck } from './checks/tls-check';
@@ -34,6 +36,7 @@ export class DomainCheckProcessor extends WorkerHost {
     @InjectRepository(SSLCertificate)
     private readonly sslCertificateRepository: Repository<SSLCertificate>,
     private readonly healthCheckLogService: HealthCheckLogService,
+    private readonly alertEvaluationService: AlertEvaluationService,
     @InjectQueue(DOMAIN_CHECK_QUEUE)
     private readonly domainCheckQueue: Queue<DomainCheckJobData>,
     configService: ConfigService<AppConfig, true>,
@@ -135,11 +138,20 @@ export class DomainCheckProcessor extends WorkerHost {
       return;
     }
 
+    const previousStatus = cert.status;
     cert.status = tlsResult.status;
     cert.issuer = tlsResult.issuer;
     cert.validFrom = tlsResult.validFrom;
     cert.validTo = tlsResult.validTo;
     cert.lastCheckedAt = new Date();
     await this.sslCertificateRepository.save(cert);
+
+    await this.alertEvaluationService.evaluateTransition({
+      orgId: domain.orgId,
+      entityType: AlertEntityType.SSL_CERTIFICATE,
+      entityId: domain.id,
+      previousStatus,
+      newStatus: cert.status,
+    });
   }
 }

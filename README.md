@@ -3,20 +3,23 @@
 A provider-agnostic infrastructure monitoring tool. It connects to VMs across any provider
 (Azure, VMware, OVH, bare metal — provider is just a metadata label, not an architectural
 boundary) via SSH, checks their health, tracks the containers running on them, keeps a
-deployment history for each one, and can roll a container back to a previous image/config,
-on top of monitoring domains and SSL certificates.
+deployment history for each one, can roll a container back to a previous image/config,
+alerts on the changes that matter, and flags idle/orphaned infrastructure — on top of
+monitoring domains and SSL certificates.
 
 **This repo covers Phase 1 (auth, host registration, SSH health checks), Phase 2
-(domain + SSL certificate monitoring), Phase 3 (per-container service tracking), and
-Phase 4 (deployment snapshots + rollback).** Alerting/notifications and a frontend UI
-beyond Swagger are explicitly out of scope for now — see Roadmap below.
+(domain + SSL certificate monitoring), Phase 3 (per-container service tracking), Phase 4
+(deployment snapshots + rollback), and Phase 5 (alerting + idle/orphan insights).** A
+frontend UI beyond Swagger, real provider billing integration, and auto-rollback triggered
+by health-check failures are explicitly out of scope for now — see Roadmap below.
 
 ## Tech stack
 
 - **Backend:** NestJS + TypeScript
 - **Database:** PostgreSQL via TypeORM (migrations, no `synchronize`)
-- **Queue:** Redis + BullMQ, on three independent queues — host health checks (every
-  2 min), domain/SSL checks (every 6h), and rollback jobs (on demand, one per request)
+- **Queue:** Redis + BullMQ, on four independent queues — host health checks (every
+  2 min), domain/SSL checks (every 6h), rollback jobs (on demand, one per request), and a
+  daily insights check (idle hosts, orphaned domains/hosts)
 - **SSH:** `node-ssh` (wraps `ssh2`) via a single shared `SshConnectionService`, used by
   every phase for every remote command (host checks, service sync, rollback)
 - **DNS/WHOIS/TLS:** Node's built-in `dns`/`tls` modules, plus `whois-json` for WHOIS
@@ -132,6 +135,25 @@ curl http://localhost:3000/rollback-events/<rollback-event-id> -H "Authorization
 
 # Audit view across all services
 curl http://localhost:3000/rollback-events -H "Authorization: Bearer $TOKEN"
+
+# Create an alert rule (Slack webhook URL is encrypted at rest, never returned)
+curl -X POST http://localhost:3000/alert-rules \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Host unreachable -> Slack",
+    "entity_type": "host",
+    "condition": "host_status_transitioned_to:unreachable",
+    "channel": "slack",
+    "channel_config": {"webhook_url": "https://hooks.slack.com/services/..."},
+    "cooldown_minutes": 30
+  }'
+
+# Audit trail of every alert attempt (sent or failed), filterable
+curl "http://localhost:3000/alert-logs?entity_type=host" -H "Authorization: Bearer $TOKEN"
+
+# Idle hosts + orphaned domains/hosts, computed live (not cached)
+curl http://localhost:3000/insights -H "Authorization: Bearer $TOKEN"
 ```
 
 Registered hosts are re-checked automatically every `HEALTH_CHECK_INTERVAL_MS` (default:
@@ -266,6 +288,73 @@ minute per domain via Redis):
 (`entity_type` + `entity_id` identify what was checked), rather than a parallel logging
 table per resource — see `src/health-check-log/`.
 
+## How alerting works
+
+There is no new schedule for this - `AlertEvaluationService.evaluateTransition(...)` is
+called from the same point each existing processor already updates its entity's status:
+the host health check, the domain/SSL check, the service sync, and the rollback job (on
+failure). Alert conditions are a **fixed set** (`src/alerts/alert-condition.ts`), not a
+free-form rule DSL:
+
+```
+host_status_transitioned_to:unreachable       ssl_status_transitioned_to:expiring_soon
+host_status_transitioned_to:degraded          ssl_status_transitioned_to:expired
+service_status_transitioned_to:crash_loop     rollback_event:failed
+service_status_transitioned_to:unhealthy      system:idle_host_detected / system:orphan_detected
+```
+
+1. `evaluateTransition` no-ops unless the entity's status actually just changed (the
+   previous value is compared before the new one is persisted) - this is what stops a
+   permanently-broken host from re-alerting on every single check cycle.
+2. If it changed, the condition string is derived (`host_status_transitioned_to:unreachable`,
+   etc.) and matched against enabled `AlertRule`s for that org/entity_type/condition.
+3. **Cooldown**: before sending, `AlertLog` is checked for a `sent` row for the same
+   `(alert_rule_id, entity_id)` within the rule's `cooldown_minutes`. If one exists, the
+   send is skipped - a *failed* delivery does not count towards cooldown, so a broken
+   channel doesn't suppress the next real attempt.
+4. Delivery goes through a `ChannelAdapter` (`src/alerts/channels/`) - Slack is a real
+   HTTPS POST to an Incoming Webhook URL with a timeout; email is a fully-interface-
+   compliant stub that records a clear "not yet configured" failure rather than pretending
+   to send. Adding a channel means adding an adapter, never touching the matching/cooldown
+   logic.
+5. Every attempt - success or failure - writes an immutable `AlertLog` row, same audit
+   spirit as `RollbackEvent`.
+
+**Alert delivery can never fail the job that triggered it.** Every step from rule lookup
+through channel delivery is wrapped in its own try/catch inside `AlertEvaluationService`;
+a broken webhook, a bad channel config, or a DB hiccup while writing the log is caught,
+logged, and swallowed - the health check / sync / rollback job that called it always
+completes and records its own result regardless.
+
+## How idle-host and orphan insights work
+
+Computed by `InsightsService` on its own daily BullMQ repeatable job (its own queue -
+this is an aggregate query across all hosts/domains, not a per-entity check, so it doesn't
+piggyback on an existing per-host schedule):
+
+- **Idle host** (`IDLE_HOST_MIN_AGE_HOURS`, 24h by default, in
+  `src/insights/insights.constants.ts`): `status: healthy`, zero `Service` rows with
+  `status: running`, and registered more than that long ago - the age check exists
+  specifically so a freshly-registered host with nothing deployed to it yet isn't
+  immediately flagged.
+- **Orphaned domain**: `host_id IS NULL`, or its `resolved_ip` (from the Phase 2 DNS
+  check) matches no registered host's `ip_address` - it resolves somewhere this system
+  doesn't know about. A domain that simply hasn't resolved yet (`resolved_ip` still null)
+  is not considered orphaned.
+- **Orphaned host**: zero `Domain` rows reference it. Presented as informational, not a
+  failure state - nothing points at a host is not inherently a problem.
+
+`GET /insights` computes all three live from current DB state (no caching - this data
+changes slowly, so a live query is fine at this scale), and `GET /overview`'s
+`idle_hosts_count` / `orphaned_domains_count` / `orphaned_hosts_count` call that exact
+same method, so the two endpoints can never drift apart.
+
+The daily job only alerts (`system:idle_host_detected` / `system:orphan_detected`) for
+entities *newly* matching a heuristic since the previous run - a small `InsightState`
+table (`entity_id`, `flag`, `active`) persists what matched last time so a host that's
+been idle for a month doesn't re-alert every day, while a host that stops and later
+becomes idle again correctly re-fires.
+
 ## Scripts
 
 | Command                    | Description                                       |
@@ -312,13 +401,25 @@ table per resource — see `src/health-check-log/`.
 - At most one active (`pending`/`in_progress`) rollback per service is allowed, enforced
   both in the application layer and by a Postgres partial unique index, so two concurrent
   requests can't double-execute a rollback for the same service.
+- `AlertRule.channel_config_encrypted` (e.g. a Slack webhook URL) is encrypted at rest with
+  the same `CryptoService` used for SSH keys and rollback config blobs - it's a credential,
+  treated like one. It is never returned by any API response.
+- Alert delivery is fully isolated from the job that triggered it: every step in
+  `AlertEvaluationService`, from rule lookup to channel send to writing the `AlertLog`
+  row, is wrapped in its own try/catch, so a broken webhook can never mark a health check,
+  sync, or rollback job as failed.
+- `GET /insights` computes idle/orphan data live from current DB state, scoped to the
+  caller's org - same JWT + admin-role guard as every other endpoint.
 
 ## Project status / roadmap
 
 - ✅ Phase 1: Auth, host registration, SSH-based health checks
 - ✅ Phase 2: Domain + SSL certificate monitoring (DNS/WHOIS/TLS)
 - ✅ Phase 3: Per-container service tracking (`docker ps -a`, status classification)
-- ✅ Phase 4 (this repo): Deployment snapshots + one-click rollback, with a mandatory
-  post-rollback health check and a full audit trail (`RollbackEvent`)
-- ⏭️ Phase 5: Frontend UI + WebSocket live updates
-- ⏭️ Later: alerting/notifications (Slack/email), auto-rollback on health-check failure
+- ✅ Phase 4: Deployment snapshots + one-click rollback, with a mandatory post-rollback
+  health check and a full audit trail (`RollbackEvent`)
+- ✅ Phase 5 (this repo): Alerting (Slack, fixed condition set, cooldown-aware) + idle-host
+  and orphan-domain/host insights, both wired into the existing check processors and a new
+  daily insights job
+- ⏭️ Later: a frontend UI + WebSocket live updates, real provider billing integration,
+  auto-rollback triggered by health-check failures, an email delivery backend

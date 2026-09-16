@@ -9,6 +9,9 @@ import { SSLCertificate } from '../domains/entities/ssl-certificate.entity';
 import { Service } from '../services/entities/service.entity';
 import { DeploymentSnapshot } from '../deployment-snapshots/entities/deployment-snapshot.entity';
 import { RollbackEvent } from '../rollback/entities/rollback-event.entity';
+import { AlertRule } from '../alerts/entities/alert-rule.entity';
+import { AlertLog } from '../alerts/entities/alert-log.entity';
+import { InsightState } from '../insights/entities/insight-state.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -23,6 +26,9 @@ export const AppDataSource = new DataSource({
     Service,
     DeploymentSnapshot,
     RollbackEvent,
+    AlertRule,
+    AlertLog,
+    InsightState,
   ],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
