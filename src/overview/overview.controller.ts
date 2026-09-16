@@ -8,6 +8,7 @@ import { UserRole } from '../common/constants/roles.constant';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { HostsService } from '../hosts/hosts.service';
 import { DomainsService } from '../domains/domains.service';
+import { ServicesService } from '../services/services.service';
 import { OverviewResponseDto } from './dto/overview-response.dto';
 
 @ApiTags('overview')
@@ -18,17 +19,21 @@ export class OverviewController {
   constructor(
     private readonly hostsService: HostsService,
     private readonly domainsService: DomainsService,
+    private readonly servicesService: ServicesService,
   ) {}
 
   @Get()
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Aggregate host and domain/SSL status counts for the organization' })
+  @ApiOperation({
+    summary: 'Aggregate host, domain/SSL, and service status counts for the organization',
+  })
   async getOverview(@CurrentUser() user: AuthenticatedUser): Promise<OverviewResponseDto> {
-    const [hostCounts, domainCounts] = await Promise.all([
+    const [hostCounts, domainCounts, serviceCounts] = await Promise.all([
       this.hostsService.getOverview(user.orgId),
       this.domainsService.getOverview(user.orgId),
+      this.servicesService.getOverview(user.orgId),
     ]);
 
-    return { ...hostCounts, ...domainCounts };
+    return { ...hostCounts, ...domainCounts, ...serviceCounts };
   }
 }

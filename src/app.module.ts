@@ -14,6 +14,7 @@ import { HostsModule } from './hosts/hosts.module';
 import { HealthCheckModule } from './health-check/health-check.module';
 import { DomainsModule } from './domains/domains.module';
 import { DomainCheckModule } from './domain-check/domain-check.module';
+import { ServicesModule } from './services/services.module';
 import { OverviewModule } from './overview/overview.module';
 import { Organization } from './organizations/entities/organization.entity';
 import { User } from './users/entities/user.entity';
@@ -21,6 +22,7 @@ import { Host } from './hosts/entities/host.entity';
 import { HealthCheckLog } from './health-check-log/entities/health-check-log.entity';
 import { Domain } from './domains/entities/domain.entity';
 import { SSLCertificate } from './domains/entities/ssl-certificate.entity';
+import { Service } from './services/entities/service.entity';
 
 @Module({
   imports: [
@@ -34,7 +36,7 @@ import { SSLCertificate } from './domains/entities/ssl-certificate.entity';
       useFactory: (configService: ConfigService<AppConfig, true>) => ({
         type: 'postgres',
         url: configService.get('databaseUrl', { infer: true }),
-        entities: [Organization, User, Host, HealthCheckLog, Domain, SSLCertificate],
+        entities: [Organization, User, Host, HealthCheckLog, Domain, SSLCertificate, Service],
         synchronize: false,
         autoLoadEntities: true,
       }),
@@ -58,6 +60,7 @@ import { SSLCertificate } from './domains/entities/ssl-certificate.entity';
     HealthCheckModule,
     DomainsModule,
     DomainCheckModule,
+    ServicesModule,
     OverviewModule,
   ],
 })

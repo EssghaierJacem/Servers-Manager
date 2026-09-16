@@ -9,5 +9,10 @@ export const HEALTH_CHECK_CONCURRENCY = parseInt(
   10,
 );
 
-export const DOCKER_PS_COMMAND = "docker ps --format '{{json .}}'";
+// -a (all containers, including stopped ones) so a stopped/crash-looping
+// container is a visible status, not something the check silently hides.
+// This same command's output backs both the host healthy/degraded/unreachable
+// classification (health-check-status-mapper.ts) and the service sync
+// (services/services-sync.service.ts) - one command, one SSH round trip.
+export const DOCKER_PS_COMMAND = "docker ps -a --format '{{json .}}'";
 export const UPTIME_COMMAND = 'uptime';

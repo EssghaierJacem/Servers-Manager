@@ -2,12 +2,14 @@
 
 A provider-agnostic infrastructure monitoring tool. It connects to VMs across any provider
 (Azure, VMware, OVH, bare metal — provider is just a metadata label, not an architectural
-boundary) via SSH, checks their health, monitors domains and SSL certificates, and will
-later support one-click rollback of containerized services.
+boundary) via SSH, checks their health, tracks the containers running on them, monitors
+domains and SSL certificates, and will later support one-click rollback of containerized
+services.
 
-**This repo covers Phase 1 (auth, host registration, SSH health checks) and Phase 2
-(domain + SSL certificate monitoring).** Rollback, service/container tracking, alerting,
-and a frontend UI beyond Swagger are explicitly out of scope for now — see Roadmap below.
+**This repo covers Phase 1 (auth, host registration, SSH health checks), Phase 2
+(domain + SSL certificate monitoring), and Phase 3 (per-container service tracking).**
+Rollback, deployment snapshots, alerting, and a frontend UI beyond Swagger are explicitly
+out of scope for now — see Roadmap below.
 
 ## Tech stack
 
@@ -91,6 +93,11 @@ curl http://localhost:3000/hosts -H "Authorization: Bearer $TOKEN"
 curl -X POST http://localhost:3000/hosts/<host-id>/check -H "Authorization: Bearer $TOKEN"
 curl http://localhost:3000/hosts/<host-id> -H "Authorization: Bearer $TOKEN"
 
+# The same check also syncs every container on that host via `docker ps -a`
+curl http://localhost:3000/hosts/<host-id>/services -H "Authorization: Bearer $TOKEN"
+curl http://localhost:3000/services/<service-id> -H "Authorization: Bearer $TOKEN"
+curl -X POST http://localhost:3000/services/<service-id>/check -H "Authorization: Bearer $TOKEN"
+
 # Register a domain (optionally linked to a host) — this also triggers an
 # immediate DNS + WHOIS + TLS check
 curl -X POST http://localhost:3000/domains \
@@ -105,7 +112,7 @@ curl http://localhost:3000/domains/<domain-id> -H "Authorization: Bearer $TOKEN"
 # Trigger another check on demand (rate-limited to once/minute per domain)
 curl -X POST http://localhost:3000/domains/<domain-id>/check -H "Authorization: Bearer $TOKEN"
 
-# Combined host + domain/SSL status counts
+# Combined host + domain/SSL + service status counts
 curl http://localhost:3000/overview -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -121,14 +128,44 @@ On trigger (scheduled or on-demand via `POST /hosts/:id/check`):
    with configurable concurrency (`HEALTH_CHECK_CONCURRENCY`, default 5) — one slow or
    unreachable host never blocks the others.
 2. The worker decrypts the host's SSH key in-memory (only inside the worker process) and
-   connects via `node-ssh` with a connect timeout (`SSH_CONNECT_TIMEOUT_MS`).
-3. It runs `uptime` and `docker ps --format '{{json .}}'`.
+   connects via `node-ssh` with a connect timeout (`SSH_CONNECT_TIMEOUT_MS`) — **one SSH
+   session, reused for everything below.**
+3. It runs `uptime` and `docker ps -a --format '{{json .}}'` (`-a` includes stopped
+   containers) in that same session.
    - SSH connects and both commands behave (Docker not installed is a valid, non-failing
      state) → `healthy`
    - SSH connects but a command fails/times out unexpectedly → `degraded`
    - SSH connection itself fails (timeout, auth failure, refused) → `unreachable`
 4. A `HealthCheckLog` row is written with the raw output (or error), and the host's
    `status` / `last_checked_at` are updated.
+5. The `docker ps -a` output already fetched in step 3 is handed to the service sync (see
+   below) — no second SSH connection is opened for it.
+
+## How the service (container) sync works
+
+Runs as part of the host health check above, in the same job and the same SSH session —
+there is no separate schedule or connection for this.
+
+1. If `docker ps -a` failed because Docker isn't installed (exit code non-zero and the
+   output looks like "command not found"), this is logged at debug level and treated as
+   zero services for that host — not a job failure.
+2. Otherwise each JSON line is parsed into a container record and upserted into a
+   `Service` row keyed on `(host_id, container_id)`, so repeated checks update the same
+   row instead of creating duplicates. The image reference is split into `image` +
+   `current_tag` (careful not to mistake a registry's `host:port` for a tag separator).
+3. Each container's status is classified from Docker's own status string
+   (`classifyContainerStatus`, in `src/services/container-status-classifier.ts`):
+   - contains `Restarting` → `crash_loop` (Docker is actively restarting it)
+   - contains `Up` and `(unhealthy)` → `unhealthy` (has a failing `HEALTHCHECK`)
+   - contains `Up` otherwise → `running` (including containers with no healthcheck at all)
+   - contains `Exited` → `stopped`
+   - anything else → `unknown`, with the raw string logged for diagnosis
+4. Any existing `Service` row for that host whose container didn't appear in this run is
+   explicitly marked `unknown` (the container may have been removed) rather than left
+   silently stale. A row already `unknown` is left alone so a long-gone container isn't
+   re-written and re-logged on every run forever.
+5. Each container's outcome writes its own `HealthCheckLog` entry
+   (`entity_type: service`, `entity_id`: the Service row's id).
 
 ## How the domain check works
 
@@ -193,10 +230,14 @@ table per resource — see `src/health-check-log/`.
   so repeated manual triggering can't be used to hammer WHOIS servers.
 - All configuration is loaded through a single typed config module that fails fast on
   startup if a required environment variable is missing.
+- There is no `POST /services` — services are only ever discovered from real `docker ps -a`
+  output during a host check, never created by hand.
 
 ## Project status / roadmap
 
 - ✅ Phase 1: Auth, host registration, SSH-based health checks
-- ✅ Phase 2 (this repo): Domain + SSL certificate monitoring (DNS/WHOIS/TLS)
-- ⏭️ Phase 3: One-click rollback of containerized services
-- ⏭️ Phase 4: Frontend UI + WebSocket live updates
+- ✅ Phase 2: Domain + SSL certificate monitoring (DNS/WHOIS/TLS)
+- ✅ Phase 3 (this repo): Per-container service tracking (`docker ps -a`, status
+  classification, container lifecycle state — no rollback yet, just current state)
+- ⏭️ Phase 4: One-click rollback of containerized services
+- ⏭️ Phase 5: Frontend UI + WebSocket live updates

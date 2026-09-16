@@ -4,12 +4,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Job, Queue } from 'bullmq';
 import { Repository } from 'typeorm';
 import { CryptoService } from '../crypto/crypto.service';
-import { SshService } from '../ssh/ssh.service';
+import { SshCommandResult, SshService } from '../ssh/ssh.service';
 import { Host, HostStatus } from '../hosts/entities/host.entity';
 import { HealthCheckStatus } from '../hosts/entities/health-check-status.enum';
 import { HealthCheckEntityType } from '../health-check-log/entities/health-check-log.entity';
 import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
 import { enqueuePerEntityJobs } from '../common/bullmq/fan-out.util';
+import { ServicesSyncService } from '../services/services-sync.service';
 import { HealthCheckJobData } from './health-check-job.interface';
 import {
   HEALTH_CHECK_QUEUE,
@@ -41,6 +42,7 @@ export class HealthCheckProcessor extends WorkerHost {
     private readonly healthCheckLogService: HealthCheckLogService,
     private readonly cryptoService: CryptoService,
     private readonly sshService: SshService,
+    private readonly servicesSyncService: ServicesSyncService,
     @InjectQueue(HEALTH_CHECK_QUEUE)
     private readonly healthCheckQueue: Queue<HealthCheckJobData>,
   ) {
@@ -76,7 +78,7 @@ export class HealthCheckProcessor extends WorkerHost {
       return;
     }
 
-    const outcome = await this.runCheck(host);
+    const { outcome, sshResults } = await this.runCheck(host);
 
     await this.healthCheckLogService.write({
       entityType: HealthCheckEntityType.HOST,
@@ -90,15 +92,26 @@ export class HealthCheckProcessor extends WorkerHost {
     await this.hostRepository.save(host);
 
     this.logger.debug(`Host ${host.id} (${host.name}) checked -> ${outcome.status}`);
+
+    // The docker ps -a output was already fetched above in the same SSH
+    // session as the uptime check - reuse it for the service sync rather
+    // than opening a second connection to the same host. If the SSH
+    // connection itself failed, there's nothing to sync from.
+    if (sshResults) {
+      const [, dockerPsResult] = sshResults;
+      await this.servicesSyncService.sync(host, dockerPsResult);
+    }
   }
 
-  private async runCheck(host: Host): Promise<HealthCheckOutcome> {
+  private async runCheck(
+    host: Host,
+  ): Promise<{ outcome: HealthCheckOutcome; sshResults: SshCommandResult[] | null }> {
     let privateKey: string;
     try {
       privateKey = this.cryptoService.decrypt(host.sshKeyEncrypted);
     } catch (error) {
       this.logger.error(`Failed to decrypt SSH key for host ${host.id}`);
-      return mapSshFailureToOutcome(error);
+      return { outcome: mapSshFailureToOutcome(error), sshResults: null };
     }
 
     try {
@@ -111,10 +124,10 @@ export class HealthCheckProcessor extends WorkerHost {
         },
         [UPTIME_COMMAND, DOCKER_PS_COMMAND],
       );
-      return mapCommandResultsToOutcome(results);
+      return { outcome: mapCommandResultsToOutcome(results), sshResults: results };
     } catch (error) {
       this.logger.warn(`SSH connection to host ${host.id} failed: ${(error as Error).message}`);
-      return mapSshFailureToOutcome(error);
+      return { outcome: mapSshFailureToOutcome(error), sshResults: null };
     } finally {
       privateKey = '';
     }

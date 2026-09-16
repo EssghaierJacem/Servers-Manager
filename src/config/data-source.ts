@@ -6,11 +6,12 @@ import { Host } from '../hosts/entities/host.entity';
 import { HealthCheckLog } from '../health-check-log/entities/health-check-log.entity';
 import { Domain } from '../domains/entities/domain.entity';
 import { SSLCertificate } from '../domains/entities/ssl-certificate.entity';
+import { Service } from '../services/entities/service.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Organization, User, Host, HealthCheckLog, Domain, SSLCertificate],
+  entities: [Organization, User, Host, HealthCheckLog, Domain, SSLCertificate, Service],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
 });
