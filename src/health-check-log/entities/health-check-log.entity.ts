@@ -2,13 +2,14 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 
 /**
  * What kind of entity a log row is about. Extend this enum (and nothing
- * else) when a new checkable resource type is introduced - e.g. `service`
- * in a later phase - rather than adding a parallel logging table.
+ * else) when a new checkable resource type is introduced rather than
+ * adding a parallel logging table.
  */
 export enum HealthCheckEntityType {
   HOST = 'host',
   DOMAIN = 'domain',
   SSL_CERTIFICATE = 'ssl_certificate',
+  SERVICE = 'service',
 }
 
 /**

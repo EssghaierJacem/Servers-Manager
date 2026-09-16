@@ -33,4 +33,25 @@ export class OverviewResponseDto {
 
   @ApiProperty()
   domains_not_resolving: number;
+
+  @ApiProperty()
+  services_total: number;
+
+  @ApiProperty()
+  running: number;
+
+  @ApiProperty()
+  unhealthy: number;
+
+  @ApiProperty()
+  stopped: number;
+
+  @ApiProperty()
+  crash_loop: number;
+
+  @ApiProperty({
+    description:
+      'Services with unknown status (container missing from the last sync, or unparseable docker ps status)',
+  })
+  services_unknown: number;
 }

@@ -1,5 +1,6 @@
 import { HealthCheckStatus } from '../hosts/entities/health-check-status.enum';
 import { SshCommandResult } from '../ssh/ssh.service';
+import { isDockerMissing } from '../common/utils/docker.util';
 
 export interface HealthCheckOutcome {
   status: HealthCheckStatus;
@@ -47,16 +48,4 @@ export function mapCommandResultsToOutcome(results: SshCommandResult[]): HealthC
   }
 
   return { status: HealthCheckStatus.HEALTHY, rawOutput };
-}
-
-function isDockerMissing(dockerResult: SshCommandResult): boolean {
-  if (dockerResult.exitCode === 0) {
-    return false;
-  }
-  const combined = `${dockerResult.stdout} ${dockerResult.stderr}`.toLowerCase();
-  return (
-    combined.includes('command not found') ||
-    combined.includes('not recognized') ||
-    combined.includes('no such file')
-  );
 }
