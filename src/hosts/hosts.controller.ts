@@ -20,7 +20,7 @@ import { HostsService } from './hosts.service';
 import { CreateHostDto } from './dto/create-host.dto';
 import { HostResponseDto } from './dto/host-response.dto';
 import { HostDetailResponseDto } from './dto/health-check-log-response.dto';
-import { CheckTriggeredResponseDto } from './dto/check-triggered-response.dto';
+import { CheckTriggeredResponseDto } from '../common/dto/check-triggered-response.dto';
 import { toHostDetailResponseDto, toHostResponseDto } from './hosts.mapper';
 
 @ApiTags('hosts')

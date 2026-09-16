@@ -6,11 +6,13 @@ import { Repository } from 'typeorm';
 import { CryptoService } from '../crypto/crypto.service';
 import { HEALTH_CHECK_JOB, HEALTH_CHECK_QUEUE } from '../health-check/health-check.constants';
 import { HealthCheckJobData } from '../health-check/health-check-job.interface';
+import {
+  HealthCheckEntityType,
+  HealthCheckLog,
+} from '../health-check-log/entities/health-check-log.entity';
+import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
 import { CreateHostDto } from './dto/create-host.dto';
-import { HealthCheckLog } from './entities/health-check-log.entity';
 import { DEFAULT_SSH_PORT, Host, HostStatus } from './entities/host.entity';
-
-const RECENT_LOGS_LIMIT = 20;
 
 export interface OverviewCounts {
   total_hosts: number;
@@ -25,8 +27,7 @@ export class HostsService {
   constructor(
     @InjectRepository(Host)
     private readonly hostRepository: Repository<Host>,
-    @InjectRepository(HealthCheckLog)
-    private readonly healthCheckLogRepository: Repository<HealthCheckLog>,
+    private readonly healthCheckLogService: HealthCheckLogService,
     private readonly cryptoService: CryptoService,
     @InjectQueue(HEALTH_CHECK_QUEUE)
     private readonly healthCheckQueue: Queue<HealthCheckJobData>,
@@ -62,12 +63,8 @@ export class HostsService {
     return host;
   }
 
-  async getRecentLogs(hostId: string): Promise<HealthCheckLog[]> {
-    return this.healthCheckLogRepository.find({
-      where: { hostId },
-      order: { checkedAt: 'DESC' },
-      take: RECENT_LOGS_LIMIT,
-    });
+  getRecentLogs(hostId: string): Promise<HealthCheckLog[]> {
+    return this.healthCheckLogService.findRecent([HealthCheckEntityType.HOST], hostId);
   }
 
   async remove(orgId: string, id: string): Promise<void> {

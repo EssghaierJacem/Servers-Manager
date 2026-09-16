@@ -15,4 +15,22 @@ export class OverviewResponseDto {
 
   @ApiProperty()
   unknown: number;
+
+  @ApiProperty()
+  domains_total: number;
+
+  @ApiProperty()
+  ssl_valid: number;
+
+  @ApiProperty()
+  ssl_expiring_soon: number;
+
+  @ApiProperty()
+  ssl_expired: number;
+
+  @ApiProperty()
+  ssl_invalid: number;
+
+  @ApiProperty()
+  domains_not_resolving: number;
 }

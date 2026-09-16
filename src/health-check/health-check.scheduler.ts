@@ -3,6 +3,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { AppConfig } from '../config/configuration';
+import { upsertRepeatableTick } from '../common/bullmq/repeatable-tick.util';
 import { HealthCheckJobData } from './health-check-job.interface';
 import {
   HEALTH_CHECK_QUEUE,
@@ -28,10 +29,11 @@ export class HealthCheckScheduler implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     const intervalMs = this.configService.get('healthCheck', { infer: true }).intervalMs;
 
-    await this.healthCheckQueue.upsertJobScheduler(
+    await upsertRepeatableTick(
+      this.healthCheckQueue,
       HEALTH_CHECK_REPEATABLE_JOB_ID,
-      { every: intervalMs },
-      { name: HEALTH_CHECK_TICK_JOB },
+      intervalMs,
+      HEALTH_CHECK_TICK_JOB,
     );
 
     this.logger.log(`Scheduled recurring health checks every ${intervalMs}ms`);
