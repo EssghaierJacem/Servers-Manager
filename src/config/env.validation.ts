@@ -25,4 +25,6 @@ export const envValidationSchema = Joi.object({
   DNS_TIMEOUT_MS: Joi.number().default(5000),
   WHOIS_TIMEOUT_MS: Joi.number().default(9000),
   TLS_TIMEOUT_MS: Joi.number().default(8000),
+
+  ROLLBACK_CONCURRENCY: Joi.number().default(5),
 });

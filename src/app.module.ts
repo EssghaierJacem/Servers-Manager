@@ -15,6 +15,8 @@ import { HealthCheckModule } from './health-check/health-check.module';
 import { DomainsModule } from './domains/domains.module';
 import { DomainCheckModule } from './domain-check/domain-check.module';
 import { ServicesModule } from './services/services.module';
+import { DeploymentSnapshotsModule } from './deployment-snapshots/deployment-snapshots.module';
+import { RollbackModule } from './rollback/rollback.module';
 import { OverviewModule } from './overview/overview.module';
 import { Organization } from './organizations/entities/organization.entity';
 import { User } from './users/entities/user.entity';
@@ -23,6 +25,8 @@ import { HealthCheckLog } from './health-check-log/entities/health-check-log.ent
 import { Domain } from './domains/entities/domain.entity';
 import { SSLCertificate } from './domains/entities/ssl-certificate.entity';
 import { Service } from './services/entities/service.entity';
+import { DeploymentSnapshot } from './deployment-snapshots/entities/deployment-snapshot.entity';
+import { RollbackEvent } from './rollback/entities/rollback-event.entity';
 
 @Module({
   imports: [
@@ -36,7 +40,17 @@ import { Service } from './services/entities/service.entity';
       useFactory: (configService: ConfigService<AppConfig, true>) => ({
         type: 'postgres',
         url: configService.get('databaseUrl', { infer: true }),
-        entities: [Organization, User, Host, HealthCheckLog, Domain, SSLCertificate, Service],
+        entities: [
+          Organization,
+          User,
+          Host,
+          HealthCheckLog,
+          Domain,
+          SSLCertificate,
+          Service,
+          DeploymentSnapshot,
+          RollbackEvent,
+        ],
         synchronize: false,
         autoLoadEntities: true,
       }),
@@ -61,6 +75,8 @@ import { Service } from './services/entities/service.entity';
     DomainsModule,
     DomainCheckModule,
     ServicesModule,
+    DeploymentSnapshotsModule,
+    RollbackModule,
     OverviewModule,
   ],
 })

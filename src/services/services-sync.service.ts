@@ -2,18 +2,28 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { isDockerMissing } from '../common/utils/docker.util';
-import { SshCommandResult } from '../ssh/ssh.service';
+import { SshCommandResult, SshConnectionService } from '../ssh/ssh.service';
+import { CryptoService } from '../crypto/crypto.service';
 import { Host } from '../hosts/entities/host.entity';
 import { HealthCheckEntityType } from '../health-check-log/entities/health-check-log.entity';
 import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
+import { DeploymentSnapshotsService } from '../deployment-snapshots/deployment-snapshots.service';
+import { parseDockerInspectOutput } from '../deployment-snapshots/docker-inspect-parser';
 import { classifyContainerStatus } from './container-status-classifier';
 import { DockerPsContainer, parseDockerPsOutput, splitImageAndTag } from './docker-ps-parser';
 import { Service, ServiceStatus } from './entities/service.entity';
 
+const DOCKER_INSPECT_COMMAND_PREFIX = 'docker inspect';
+
 /**
  * Turns the `docker ps -a` output already fetched during a host's health
  * check into Service rows. Runs inside that same job/SSH session - it does
- * not open a connection of its own (see HealthCheckProcessor).
+ * not open a connection of its own for the ps-based sync (see
+ * HealthCheckProcessor). It *does* open one extra short-lived connection,
+ * via the same shared SshConnectionService, but only on the rare tick
+ * where a service's image/tag actually changed - `docker inspect` output
+ * wasn't part of Phase 3's existing SSH round trip, so there's nothing to
+ * reuse for it.
  */
 @Injectable()
 export class ServicesSyncService {
@@ -23,6 +33,9 @@ export class ServicesSyncService {
     @InjectRepository(Service)
     private readonly serviceRepository: Repository<Service>,
     private readonly healthCheckLogService: HealthCheckLogService,
+    private readonly deploymentSnapshotsService: DeploymentSnapshotsService,
+    private readonly sshConnectionService: SshConnectionService,
+    private readonly cryptoService: CryptoService,
   ) {}
 
   async sync(host: Host, dockerPsResult: SshCommandResult): Promise<void> {
@@ -90,6 +103,80 @@ export class ServicesSyncService {
         ports: container.ports,
       },
     });
+
+    await this.captureSnapshotIfImageChanged(host, saved, container);
+  }
+
+  /**
+   * Compares this run's full image reference against the service's last
+   * known snapshot. A mismatch (including "no snapshot yet") means a
+   * deploy happened since we last looked, so a fresh DeploymentSnapshot is
+   * captured - automatically, deployed_by stays null.
+   */
+  private async captureSnapshotIfImageChanged(
+    host: Host,
+    service: Service,
+    container: DockerPsContainer,
+  ): Promise<void> {
+    const currentSnapshot = await this.deploymentSnapshotsService.findCurrentForService(service.id);
+    if (currentSnapshot?.imageTag === container.image) {
+      return;
+    }
+
+    let privateKey: string;
+    try {
+      privateKey = this.cryptoService.decrypt(host.sshKeyEncrypted);
+    } catch (error) {
+      this.logger.error(
+        `Failed to decrypt SSH key for host ${host.id} while capturing a snapshot for service ${service.id}: ${(error as Error).message}`,
+      );
+      return;
+    }
+
+    try {
+      const [inspectResult] = await this.sshConnectionService.runCommands(
+        {
+          host: host.ipAddress,
+          port: host.sshPort,
+          username: host.sshUser,
+          privateKey,
+        },
+        [`${DOCKER_INSPECT_COMMAND_PREFIX} ${container.id}`],
+      );
+
+      if (inspectResult.exitCode !== 0) {
+        this.logger.warn(
+          `docker inspect failed for container ${container.id} on host ${host.id}: ${inspectResult.stderr}`,
+        );
+        return;
+      }
+
+      const config = parseDockerInspectOutput(inspectResult.stdout);
+      if (!config) {
+        this.logger.warn(
+          `Could not parse docker inspect output for container ${container.id} on host ${host.id}`,
+        );
+        return;
+      }
+
+      await this.deploymentSnapshotsService.createSnapshot({
+        serviceId: service.id,
+        imageTag: container.image,
+        config,
+        deployedAt: new Date(),
+        deployedById: null,
+      });
+
+      this.logger.debug(
+        `Captured new deployment snapshot for service ${service.id}: ${container.image}`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to capture deployment snapshot for service ${service.id} on host ${host.id}: ${(error as Error).message}`,
+      );
+    } finally {
+      privateKey = '';
+    }
   }
 
   /**

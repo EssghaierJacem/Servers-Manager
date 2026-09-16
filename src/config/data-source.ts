@@ -7,11 +7,23 @@ import { HealthCheckLog } from '../health-check-log/entities/health-check-log.en
 import { Domain } from '../domains/entities/domain.entity';
 import { SSLCertificate } from '../domains/entities/ssl-certificate.entity';
 import { Service } from '../services/entities/service.entity';
+import { DeploymentSnapshot } from '../deployment-snapshots/entities/deployment-snapshot.entity';
+import { RollbackEvent } from '../rollback/entities/rollback-event.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Organization, User, Host, HealthCheckLog, Domain, SSLCertificate, Service],
+  entities: [
+    Organization,
+    User,
+    Host,
+    HealthCheckLog,
+    Domain,
+    SSLCertificate,
+    Service,
+    DeploymentSnapshot,
+    RollbackEvent,
+  ],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
 });
