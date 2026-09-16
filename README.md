@@ -2,22 +2,23 @@
 
 A provider-agnostic infrastructure monitoring tool. It connects to VMs across any provider
 (Azure, VMware, OVH, bare metal — provider is just a metadata label, not an architectural
-boundary) via SSH, checks their health, tracks the containers running on them, monitors
-domains and SSL certificates, and will later support one-click rollback of containerized
-services.
+boundary) via SSH, checks their health, tracks the containers running on them, keeps a
+deployment history for each one, and can roll a container back to a previous image/config,
+on top of monitoring domains and SSL certificates.
 
 **This repo covers Phase 1 (auth, host registration, SSH health checks), Phase 2
-(domain + SSL certificate monitoring), and Phase 3 (per-container service tracking).**
-Rollback, deployment snapshots, alerting, and a frontend UI beyond Swagger are explicitly
-out of scope for now — see Roadmap below.
+(domain + SSL certificate monitoring), Phase 3 (per-container service tracking), and
+Phase 4 (deployment snapshots + rollback).** Alerting/notifications and a frontend UI
+beyond Swagger are explicitly out of scope for now — see Roadmap below.
 
 ## Tech stack
 
 - **Backend:** NestJS + TypeScript
 - **Database:** PostgreSQL via TypeORM (migrations, no `synchronize`)
-- **Queue:** Redis + BullMQ, on two independent queues/schedules — host health checks
-  (every 2 min) and domain/SSL checks (every 6h)
-- **SSH:** `node-ssh` (wraps `ssh2`) for connecting to managed hosts
+- **Queue:** Redis + BullMQ, on three independent queues — host health checks (every
+  2 min), domain/SSL checks (every 6h), and rollback jobs (on demand, one per request)
+- **SSH:** `node-ssh` (wraps `ssh2`) via a single shared `SshConnectionService`, used by
+  every phase for every remote command (host checks, service sync, rollback)
 - **DNS/WHOIS/TLS:** Node's built-in `dns`/`tls` modules, plus `whois-json` for WHOIS
   lookups (WHOIS has no standard machine-readable protocol/format, so a maintained
   parser package is used instead of hand-rolling one)
@@ -114,6 +115,23 @@ curl -X POST http://localhost:3000/domains/<domain-id>/check -H "Authorization: 
 
 # Combined host + domain/SSL + service status counts
 curl http://localhost:3000/overview -H "Authorization: Bearer $TOKEN"
+
+# Deployment history for a service (captured automatically whenever its
+# image/tag changes) - newest first
+curl http://localhost:3000/services/<service-id>/snapshots -H "Authorization: Bearer $TOKEN"
+
+# Roll a service back to an earlier snapshot (async - returns immediately)
+curl -X POST http://localhost:3000/services/<service-id>/rollback \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"target_snapshot_id": "<snapshot-id>"}'
+# -> 202 { "rollback_event_id": "<id>" }
+
+# Poll for the outcome and the full step-by-step log
+curl http://localhost:3000/rollback-events/<rollback-event-id> -H "Authorization: Bearer $TOKEN"
+
+# Audit view across all services
+curl http://localhost:3000/rollback-events -H "Authorization: Bearer $TOKEN"
 ```
 
 Registered hosts are re-checked automatically every `HEALTH_CHECK_INTERVAL_MS` (default:
@@ -166,6 +184,55 @@ there is no separate schedule or connection for this.
    re-written and re-logged on every run forever.
 5. Each container's outcome writes its own `HealthCheckLog` entry
    (`entity_type: service`, `entity_id`: the Service row's id).
+6. If the container's full image reference doesn't match the service's current
+   `DeploymentSnapshot` (including the very first time a service is seen - there's no
+   snapshot yet), a `docker inspect <container_id>` is run to capture its env vars, port
+   bindings, restart policy, and container name, and a new snapshot is created
+   (`deployed_by: null` - automatic capture), flipping the previous one's `is_current` to
+   false. This is the one extra SSH round trip this phase adds beyond Phase 3's existing
+   `uptime` + `docker ps -a` session: `docker inspect` wasn't part of that round trip, so
+   there's nothing to reuse for it, and it only runs on the rare tick where a deploy
+   actually happened - not on every 2-minute check.
+
+## How rollback works
+
+Docker containers are immutable once created - there's no way to change a running
+container's image in place, only stop it and start a new one. `POST /services/:id/rollback`
+does exactly that, but safely and asynchronously:
+
+1. The controller validates `target_snapshot_id` belongs to the service in the URL (a
+   cross-service id is rejected with `400`, not silently misapplied), checks the service
+   has a current snapshot to roll back *from*, and rejects with `409` if a rollback is
+   already `pending`/`in_progress` for this service (checked in the application layer and
+   backed by a Postgres partial unique index as a safety net against races). It then
+   creates the `RollbackEvent` row (`status: pending`) and enqueues the job - the `202`
+   response always carries a real, immediately-pollable id.
+2. The worker (its own `rollback` BullMQ queue, separate from host-health and
+   domain-check) sets `status: in_progress`, decrypts the target snapshot's config via the
+   same `CryptoService` that encrypts SSH keys, and - in **one SSH session** via
+   `SshConnectionService` - runs, in order: `docker stop`, `docker rm`, a `docker run -d`
+   built from the snapshot's captured image/ports/env/restart-policy, and `docker ps -a`.
+   Every command's result is appended to `log_output` as it happens, so a failure halfway
+   through still leaves a useful partial log.
+3. The recreated container's status is classified with the same
+   `classifyContainerStatus` used everywhere else. Only `running` is a pass. Anything
+   else - `crash_loop`, `unhealthy`, `stopped`, `unknown`, a `docker run` that failed
+   outright (e.g. a nonexistent image tag), or an SSH failure - marks the event `failed`
+   with the reason recorded, and **stops there**: no retry, no attempt to auto-revert back
+   to the pre-rollback state. A failed rollback is left exactly as attempted, for a human
+   to look at.
+4. On success: the `Service` row is updated to the new container id/image/status, a new
+   `DeploymentSnapshot` is created (`deployed_by`: the triggering user, `is_current: true`,
+   flipping the previous one), a `HealthCheckLog` entry is written, and the event is marked
+   `succeeded` with `completed_at` set.
+
+**Known, deliberate limitation:** the captured config is only what `docker inspect`
+reasonably gives us cheaply - image, port bindings, environment variables, restart policy,
+and container name. Volumes, networks, resource limits, and any other flag the original
+container was started with are **not** captured. A rollback recreates the container using
+exactly that limited set, so it is not guaranteed to reproduce the original `docker run`
+invocation exactly if the container used flags outside this set. This is intentional for
+this phase, not something silently worked around by guessing at additional config.
 
 ## How the domain check works
 
@@ -232,12 +299,26 @@ table per resource — see `src/health-check-log/`.
   startup if a required environment variable is missing.
 - There is no `POST /services` — services are only ever discovered from real `docker ps -a`
   output during a host check, never created by hand.
+- `DeploymentSnapshot.config_blob` is encrypted at rest with the same AES-256-GCM
+  `CryptoService` used for SSH keys, since captured env vars can contain secrets. It is
+  never returned by any API response (the snapshot list/detail DTOs omit it entirely).
+- Env var values captured from `docker inspect` are re-interpolated into a shell command
+  on rollback (`docker run -e ...`); every value is shell-escaped
+  (`src/rollback/docker-run-command.builder.ts`) to close off command injection through
+  that path.
+- `POST /services/:id/rollback` requires the `admin` role via the same `RolesGuard` used
+  everywhere else, even though `admin` is still the only role that exists — rollback
+  changes what's actually running, so it's gated explicitly rather than left implicit.
+- At most one active (`pending`/`in_progress`) rollback per service is allowed, enforced
+  both in the application layer and by a Postgres partial unique index, so two concurrent
+  requests can't double-execute a rollback for the same service.
 
 ## Project status / roadmap
 
 - ✅ Phase 1: Auth, host registration, SSH-based health checks
 - ✅ Phase 2: Domain + SSL certificate monitoring (DNS/WHOIS/TLS)
-- ✅ Phase 3 (this repo): Per-container service tracking (`docker ps -a`, status
-  classification, container lifecycle state — no rollback yet, just current state)
-- ⏭️ Phase 4: One-click rollback of containerized services
+- ✅ Phase 3: Per-container service tracking (`docker ps -a`, status classification)
+- ✅ Phase 4 (this repo): Deployment snapshots + one-click rollback, with a mandatory
+  post-rollback health check and a full audit trail (`RollbackEvent`)
 - ⏭️ Phase 5: Frontend UI + WebSocket live updates
+- ⏭️ Later: alerting/notifications (Slack/email), auto-rollback on health-check failure

@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Job, Queue } from 'bullmq';
 import { Repository } from 'typeorm';
 import { CryptoService } from '../crypto/crypto.service';
-import { SshCommandResult, SshService } from '../ssh/ssh.service';
+import { SshCommandResult, SshConnectionService } from '../ssh/ssh.service';
 import { Host, HostStatus } from '../hosts/entities/host.entity';
 import { HealthCheckStatus } from '../hosts/entities/health-check-status.enum';
 import { HealthCheckEntityType } from '../health-check-log/entities/health-check-log.entity';
@@ -41,7 +41,7 @@ export class HealthCheckProcessor extends WorkerHost {
     private readonly hostRepository: Repository<Host>,
     private readonly healthCheckLogService: HealthCheckLogService,
     private readonly cryptoService: CryptoService,
-    private readonly sshService: SshService,
+    private readonly sshConnectionService: SshConnectionService,
     private readonly servicesSyncService: ServicesSyncService,
     @InjectQueue(HEALTH_CHECK_QUEUE)
     private readonly healthCheckQueue: Queue<HealthCheckJobData>,
@@ -115,7 +115,7 @@ export class HealthCheckProcessor extends WorkerHost {
     }
 
     try {
-      const results = await this.sshService.runCommands(
+      const results = await this.sshConnectionService.runCommands(
         {
           host: host.ipAddress,
           port: host.sshPort,

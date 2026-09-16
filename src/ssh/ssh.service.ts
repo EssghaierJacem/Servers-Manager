@@ -19,11 +19,14 @@ export interface SshCommandResult {
 
 /**
  * Thin wrapper around node-ssh that centralizes connection setup (timeouts,
- * disconnect handling) so no other module talks to ssh2 directly.
+ * disconnect handling) so no other module talks to ssh2 directly. Every
+ * remote command in every phase (host uptime/docker ps, the Phase 3
+ * service sync, the Phase 4 rollback job) goes through this single
+ * service - host + credentials in, command results out.
  */
 @Injectable()
-export class SshService {
-  private readonly logger = new Logger(SshService.name);
+export class SshConnectionService {
+  private readonly logger = new Logger(SshConnectionService.name);
   private readonly connectTimeoutMs: number;
 
   constructor(configService: ConfigService<AppConfig, true>) {
