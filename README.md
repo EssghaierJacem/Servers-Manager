@@ -2,19 +2,23 @@
 
 A provider-agnostic infrastructure monitoring tool. It connects to VMs across any provider
 (Azure, VMware, OVH, bare metal — provider is just a metadata label, not an architectural
-boundary) via SSH, checks their health, and will later support one-click rollback of
-containerized services.
+boundary) via SSH, checks their health, monitors domains and SSL certificates, and will
+later support one-click rollback of containerized services.
 
-**This is Phase 1 of a larger design.** It covers authentication, host registration, and
-SSH-based health checks only. Rollback, domain/SSL monitoring, and a frontend UI are
-explicitly out of scope for this pass.
+**This repo covers Phase 1 (auth, host registration, SSH health checks) and Phase 2
+(domain + SSL certificate monitoring).** Rollback, service/container tracking, alerting,
+and a frontend UI beyond Swagger are explicitly out of scope for now — see Roadmap below.
 
 ## Tech stack
 
 - **Backend:** NestJS + TypeScript
 - **Database:** PostgreSQL via TypeORM (migrations, no `synchronize`)
-- **Queue:** Redis + BullMQ for background health-check jobs
+- **Queue:** Redis + BullMQ, on two independent queues/schedules — host health checks
+  (every 2 min) and domain/SSL checks (every 6h)
 - **SSH:** `node-ssh` (wraps `ssh2`) for connecting to managed hosts
+- **DNS/WHOIS/TLS:** Node's built-in `dns`/`tls` modules, plus `whois-json` for WHOIS
+  lookups (WHOIS has no standard machine-readable protocol/format, so a maintained
+  parser package is used instead of hand-rolling one)
 - **Auth:** Email + password, bcrypt password hashing, JWT access/refresh tokens
 - **Local dev infra:** Docker Compose for Postgres + Redis
 
@@ -82,23 +86,34 @@ curl -X POST http://localhost:3000/hosts \
   }'
 # -> { "id": "<host-id>", ... }
 
-# List hosts
+# List hosts / trigger a check / view results
 curl http://localhost:3000/hosts -H "Authorization: Bearer $TOKEN"
-
-# Trigger an immediate health check
 curl -X POST http://localhost:3000/hosts/<host-id>/check -H "Authorization: Bearer $TOKEN"
-
-# Check the result a few seconds later
 curl http://localhost:3000/hosts/<host-id> -H "Authorization: Bearer $TOKEN"
 
-# Aggregate status counts across all hosts
+# Register a domain (optionally linked to a host) — this also triggers an
+# immediate DNS + WHOIS + TLS check
+curl -X POST http://localhost:3000/domains \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"hostname": "example.com"}'
+# -> { "id": "<domain-id>", "dns_status": "unknown", "ssl_status": "unknown", ... }
+
+# A few seconds later: real DNS resolution + SSL certificate data
+curl http://localhost:3000/domains/<domain-id> -H "Authorization: Bearer $TOKEN"
+
+# Trigger another check on demand (rate-limited to once/minute per domain)
+curl -X POST http://localhost:3000/domains/<domain-id>/check -H "Authorization: Bearer $TOKEN"
+
+# Combined host + domain/SSL status counts
 curl http://localhost:3000/overview -H "Authorization: Bearer $TOKEN"
 ```
 
-Registered hosts are also re-checked automatically every `HEALTH_CHECK_INTERVAL_MS`
-(default: 2 minutes) via a BullMQ repeatable job — no manual triggering required.
+Registered hosts are re-checked automatically every `HEALTH_CHECK_INTERVAL_MS` (default:
+2 minutes); registered domains every `DOMAIN_CHECK_INTERVAL_MS` (default: 6 hours) — both
+via independent BullMQ repeatable jobs, no manual triggering required.
 
-## How the health check works
+## How the host health check works
 
 On trigger (scheduled or on-demand via `POST /hosts/:id/check`):
 
@@ -115,17 +130,49 @@ On trigger (scheduled or on-demand via `POST /hosts/:id/check`):
 4. A `HealthCheckLog` row is written with the raw output (or error), and the host's
    `status` / `last_checked_at` are updated.
 
+## How the domain check works
+
+On trigger (scheduled or on-demand via `POST /domains/:id/check`, rate-limited to once per
+minute per domain via Redis):
+
+1. A per-domain job is queued in BullMQ (`domain-check` queue, entirely separate from the
+   host queue/schedule), processed with its own worker concurrency
+   (`DOMAIN_CHECK_CONCURRENCY`).
+2. **DNS**: `dns.promises.resolve4(hostname)`, timeout-wrapped (`DNS_TIMEOUT_MS`). Success
+   → `dns_status: resolving` + stores the resolved IP; failure → `not_resolving`.
+3. **WHOIS**: always attempted regardless of the DNS outcome (a domain can fail to resolve
+   while still being registered), via `whois-json`, timeout-wrapped
+   (`WHOIS_TIMEOUT_MS`). WHOIS field names aren't standardized across
+   registrars/TLDs, so a list of common field-name candidates is tried for registrar and
+   expiry date. A failed/timed-out lookup is logged and never fails the rest of the check.
+4. **TLS**: only runs if DNS resolved. Opens a raw TLS connection (Node's `tls` module) to
+   the resolved IP on port 443 with SNI set to the hostname, timeout-wrapped
+   (`TLS_TIMEOUT_MS`). The certificate's `valid_to` decides the status:
+   - connection/handshake fails, or no certificate is presented → `invalid`
+   - `valid_to` in the past → `expired`
+   - `valid_to` within `SSL_EXPIRY_WARNING_DAYS` (14, a named constant in
+     `src/domain-check/domain-check.constants.ts`) → `expiring_soon`
+   - otherwise → `valid`
+5. Each of the three checks writes its own `HealthCheckLog` entry (`entity_type: domain`
+   for DNS/WHOIS, `entity_type: ssl_certificate` for TLS) so failures are individually
+   diagnosable, and the `Domain` / `SSLCertificate` rows are updated in place (the latter
+   holds only the latest certificate state, not a history).
+
+`HealthCheckLog` is a single polymorphic audit-trail table shared by both check types
+(`entity_type` + `entity_id` identify what was checked), rather than a parallel logging
+table per resource — see `src/health-check-log/`.
+
 ## Scripts
 
-| Command                  | Description                                      |
-| ------------------------- | ------------------------------------------------- |
-| `npm run start:dev`       | Start the API in watch mode                       |
-| `npm run build`           | Type-check and compile to `dist/`                 |
-| `npm run lint`            | ESLint (zero warnings required)                   |
-| `npm test`                | Run the Jest unit test suite                       |
-| `npm run migration:run`   | Apply pending TypeORM migrations                  |
-| `npm run migration:revert`| Revert the last migration                         |
-| `npm run seed`            | Explicitly seed the default organization          |
+| Command                    | Description                                       |
+| --------------------------- | -------------------------------------------------- |
+| `npm run start:dev`         | Start the API in watch mode                        |
+| `npm run build`             | Type-check and compile to `dist/`                  |
+| `npm run lint`               | ESLint (zero warnings required)                    |
+| `npm test`                  | Run the Jest unit test suite                        |
+| `npm run migration:run`     | Apply pending TypeORM migrations                   |
+| `npm run migration:revert`  | Revert the last migration                          |
+| `npm run seed`              | Explicitly seed the default organization           |
 
 ## Security notes
 
@@ -137,14 +184,19 @@ On trigger (scheduled or on-demand via `POST /hosts/:id/check`):
 - All endpoints except `/auth/register` and `/auth/login` require a valid JWT; a
   `RolesGuard` + `@Roles()` decorator gate access even though only one role
   (`admin`) exists today.
+- Domain hostnames are validated as fully-qualified domain names
+  (`class-validator`'s `@IsFQDN()`) before ever reaching an outbound DNS/WHOIS/TLS call.
+- Every outbound network call the domain checker makes (DNS, WHOIS, TLS) is
+  timeout-wrapped (`src/common/utils/with-timeout.ts`) so a slow/unresponsive remote
+  service can never hang a worker slot indefinitely.
+- `POST /domains/:id/check` is rate-limited to once per minute per domain (Redis-backed)
+  so repeated manual triggering can't be used to hammer WHOIS servers.
 - All configuration is loaded through a single typed config module that fails fast on
   startup if a required environment variable is missing.
 
 ## Project status / roadmap
 
-This is **Phase 1** of a larger design:
-
-- ✅ Phase 1 (this repo): Auth, host registration, SSH-based health checks
-- ⏭️ Phase 2: One-click rollback of containerized services
-- ⏭️ Phase 3: Domain / SSL / DNS monitoring
+- ✅ Phase 1: Auth, host registration, SSH-based health checks
+- ✅ Phase 2 (this repo): Domain + SSL certificate monitoring (DNS/WHOIS/TLS)
+- ⏭️ Phase 3: One-click rollback of containerized services
 - ⏭️ Phase 4: Frontend UI + WebSocket live updates

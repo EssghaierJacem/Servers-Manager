@@ -5,15 +5,22 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration, { AppConfig } from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { CryptoModule } from './crypto/crypto.module';
+import { RateLimiterModule } from './common/rate-limit/rate-limiter.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { HealthCheckLogModule } from './health-check-log/health-check-log.module';
 import { HostsModule } from './hosts/hosts.module';
 import { HealthCheckModule } from './health-check/health-check.module';
+import { DomainsModule } from './domains/domains.module';
+import { DomainCheckModule } from './domain-check/domain-check.module';
+import { OverviewModule } from './overview/overview.module';
 import { Organization } from './organizations/entities/organization.entity';
 import { User } from './users/entities/user.entity';
 import { Host } from './hosts/entities/host.entity';
-import { HealthCheckLog } from './hosts/entities/health-check-log.entity';
+import { HealthCheckLog } from './health-check-log/entities/health-check-log.entity';
+import { Domain } from './domains/entities/domain.entity';
+import { SSLCertificate } from './domains/entities/ssl-certificate.entity';
 
 @Module({
   imports: [
@@ -27,7 +34,7 @@ import { HealthCheckLog } from './hosts/entities/health-check-log.entity';
       useFactory: (configService: ConfigService<AppConfig, true>) => ({
         type: 'postgres',
         url: configService.get('databaseUrl', { infer: true }),
-        entities: [Organization, User, Host, HealthCheckLog],
+        entities: [Organization, User, Host, HealthCheckLog, Domain, SSLCertificate],
         synchronize: false,
         autoLoadEntities: true,
       }),
@@ -42,11 +49,16 @@ import { HealthCheckLog } from './hosts/entities/health-check-log.entity';
       }),
     }),
     CryptoModule,
+    RateLimiterModule,
     OrganizationsModule,
     UsersModule,
     AuthModule,
+    HealthCheckLogModule,
     HostsModule,
     HealthCheckModule,
+    DomainsModule,
+    DomainCheckModule,
+    OverviewModule,
   ],
 })
 export class AppModule {}

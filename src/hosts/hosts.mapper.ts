@@ -1,10 +1,8 @@
 import { Host } from './entities/host.entity';
-import { HealthCheckLog } from './entities/health-check-log.entity';
+import { HealthCheckLog } from '../health-check-log/entities/health-check-log.entity';
+import { toHealthCheckLogResponseDto } from '../common/dto/health-check-log.mapper';
 import { HostResponseDto } from './dto/host-response.dto';
-import {
-  HealthCheckLogResponseDto,
-  HostDetailResponseDto,
-} from './dto/health-check-log-response.dto';
+import { HostDetailResponseDto } from './dto/health-check-log-response.dto';
 
 /**
  * Maps a Host entity to its public representation. Deliberately omits
@@ -21,15 +19,6 @@ export function toHostResponseDto(host: Host): HostResponseDto {
     status: host.status,
     last_checked_at: host.lastCheckedAt,
     created_at: host.createdAt,
-  };
-}
-
-function toHealthCheckLogResponseDto(log: HealthCheckLog): HealthCheckLogResponseDto {
-  return {
-    id: log.id,
-    status: log.status,
-    raw_output: log.rawOutput,
-    checked_at: log.checkedAt,
   };
 }
 

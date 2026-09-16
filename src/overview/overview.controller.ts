@@ -6,7 +6,8 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UserRole } from '../common/constants/roles.constant';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
-import { HostsService } from './hosts.service';
+import { HostsService } from '../hosts/hosts.service';
+import { DomainsService } from '../domains/domains.service';
 import { OverviewResponseDto } from './dto/overview-response.dto';
 
 @ApiTags('overview')
@@ -14,12 +15,20 @@ import { OverviewResponseDto } from './dto/overview-response.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('overview')
 export class OverviewController {
-  constructor(private readonly hostsService: HostsService) {}
+  constructor(
+    private readonly hostsService: HostsService,
+    private readonly domainsService: DomainsService,
+  ) {}
 
   @Get()
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Aggregate host status counts for the organization' })
+  @ApiOperation({ summary: 'Aggregate host and domain/SSL status counts for the organization' })
   async getOverview(@CurrentUser() user: AuthenticatedUser): Promise<OverviewResponseDto> {
-    return this.hostsService.getOverview(user.orgId);
+    const [hostCounts, domainCounts] = await Promise.all([
+      this.hostsService.getOverview(user.orgId),
+      this.domainsService.getOverview(user.orgId),
+    ]);
+
+    return { ...hostCounts, ...domainCounts };
   }
 }

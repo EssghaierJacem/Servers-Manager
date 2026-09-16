@@ -1,19 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { HealthCheckStatus } from '../entities/health-check-log.entity';
-
-export class HealthCheckLogResponseDto {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty({ enum: HealthCheckStatus })
-  status: HealthCheckStatus;
-
-  @ApiProperty({ type: Object })
-  raw_output: Record<string, unknown>;
-
-  @ApiProperty()
-  checked_at: Date;
-}
+import { HealthCheckLogResponseDto } from '../../common/dto/health-check-log-response.dto';
 
 export class HostDetailResponseDto {
   @ApiProperty()

@@ -6,7 +6,10 @@ import { Repository } from 'typeorm';
 import { CryptoService } from '../crypto/crypto.service';
 import { SshService } from '../ssh/ssh.service';
 import { Host, HostStatus } from '../hosts/entities/host.entity';
-import { HealthCheckLog, HealthCheckStatus } from '../hosts/entities/health-check-log.entity';
+import { HealthCheckStatus } from '../hosts/entities/health-check-status.enum';
+import { HealthCheckEntityType } from '../health-check-log/entities/health-check-log.entity';
+import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
+import { enqueuePerEntityJobs } from '../common/bullmq/fan-out.util';
 import { HealthCheckJobData } from './health-check-job.interface';
 import {
   HEALTH_CHECK_QUEUE,
@@ -35,8 +38,7 @@ export class HealthCheckProcessor extends WorkerHost {
   constructor(
     @InjectRepository(Host)
     private readonly hostRepository: Repository<Host>,
-    @InjectRepository(HealthCheckLog)
-    private readonly healthCheckLogRepository: Repository<HealthCheckLog>,
+    private readonly healthCheckLogService: HealthCheckLogService,
     private readonly cryptoService: CryptoService,
     private readonly sshService: SshService,
     @InjectQueue(HEALTH_CHECK_QUEUE)
@@ -56,14 +58,13 @@ export class HealthCheckProcessor extends WorkerHost {
 
   private async enqueueCheckForAllHosts(): Promise<void> {
     const hosts = await this.hostRepository.find({ select: ['id'] });
-    await Promise.all(
-      hosts.map((host) =>
-        this.healthCheckQueue.add(
-          HEALTH_CHECK_JOB,
-          { hostId: host.id },
-          { removeOnComplete: true, removeOnFail: 50 },
-        ),
-      ),
+    await enqueuePerEntityJobs(
+      this.healthCheckQueue,
+      HEALTH_CHECK_JOB,
+      hosts.map((host) => host.id),
+      (hostId) => ({
+        hostId,
+      }),
     );
     this.logger.debug(`Enqueued health checks for ${hosts.length} host(s)`);
   }
@@ -77,13 +78,12 @@ export class HealthCheckProcessor extends WorkerHost {
 
     const outcome = await this.runCheck(host);
 
-    await this.healthCheckLogRepository.save(
-      this.healthCheckLogRepository.create({
-        hostId: host.id,
-        status: outcome.status,
-        rawOutput: outcome.rawOutput,
-      }),
-    );
+    await this.healthCheckLogService.write({
+      entityType: HealthCheckEntityType.HOST,
+      entityId: host.id,
+      status: outcome.status,
+      rawOutput: outcome.rawOutput,
+    });
 
     host.status = HEALTH_CHECK_STATUS_TO_HOST_STATUS[outcome.status];
     host.lastCheckedAt = new Date();

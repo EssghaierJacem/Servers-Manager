@@ -18,6 +18,13 @@ export interface AppConfig {
     intervalMs: number;
     sshConnectTimeoutMs: number;
   };
+  domainCheck: {
+    concurrency: number;
+    intervalMs: number;
+    dnsTimeoutMs: number;
+    whoisTimeoutMs: number;
+    tlsTimeoutMs: number;
+  };
 }
 
 export default (): AppConfig => ({
@@ -39,5 +46,12 @@ export default (): AppConfig => ({
     concurrency: parseInt(process.env.HEALTH_CHECK_CONCURRENCY ?? '5', 10),
     intervalMs: parseInt(process.env.HEALTH_CHECK_INTERVAL_MS ?? '120000', 10),
     sshConnectTimeoutMs: parseInt(process.env.SSH_CONNECT_TIMEOUT_MS ?? '8000', 10),
+  },
+  domainCheck: {
+    concurrency: parseInt(process.env.DOMAIN_CHECK_CONCURRENCY ?? '5', 10),
+    intervalMs: parseInt(process.env.DOMAIN_CHECK_INTERVAL_MS ?? '21600000', 10),
+    dnsTimeoutMs: parseInt(process.env.DNS_TIMEOUT_MS ?? '5000', 10),
+    whoisTimeoutMs: parseInt(process.env.WHOIS_TIMEOUT_MS ?? '9000', 10),
+    tlsTimeoutMs: parseInt(process.env.TLS_TIMEOUT_MS ?? '8000', 10),
   },
 });

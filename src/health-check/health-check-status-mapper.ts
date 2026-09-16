@@ -1,4 +1,4 @@
-import { HealthCheckStatus } from '../hosts/entities/health-check-log.entity';
+import { HealthCheckStatus } from '../hosts/entities/health-check-status.enum';
 import { SshCommandResult } from '../ssh/ssh.service';
 
 export interface HealthCheckOutcome {

@@ -19,4 +19,10 @@ export const envValidationSchema = Joi.object({
   HEALTH_CHECK_CONCURRENCY: Joi.number().default(5),
   HEALTH_CHECK_INTERVAL_MS: Joi.number().default(120000),
   SSH_CONNECT_TIMEOUT_MS: Joi.number().default(8000),
+
+  DOMAIN_CHECK_CONCURRENCY: Joi.number().default(5),
+  DOMAIN_CHECK_INTERVAL_MS: Joi.number().default(21600000),
+  DNS_TIMEOUT_MS: Joi.number().default(5000),
+  WHOIS_TIMEOUT_MS: Joi.number().default(9000),
+  TLS_TIMEOUT_MS: Joi.number().default(8000),
 });
