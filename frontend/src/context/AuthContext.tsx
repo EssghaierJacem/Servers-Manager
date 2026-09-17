@@ -9,6 +9,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isInitializing: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -75,14 +76,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(me);
   };
 
+  const register = async (email: string, password: string): Promise<void> => {
+    await apiClient.post('/auth/register', { email, password }, { skipAuth: true });
+    await login(email, password);
+  };
+
   const logout = (): void => {
     accessTokenRef.current = null;
     localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
     setUser(null);
   };
 
+  // login/register/logout only close over refs and setters (never render-scoped
+  // state), so they're safe to omit from the dependency array.
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: user !== null, isInitializing, login, logout }),
+    () => ({ user, isAuthenticated: user !== null, isInitializing, login, register, logout }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, isInitializing],
   );
 

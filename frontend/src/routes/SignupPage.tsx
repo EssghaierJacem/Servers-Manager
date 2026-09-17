@@ -1,32 +1,37 @@
 import { FormEvent, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../lib/apiClient';
 import { Logo } from '../components/Logo';
 
-export function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
+export function SignupPage() {
+  const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (isAuthenticated) {
-    const redirectTo = (location.state as { from?: string } | null)?.from ?? '/';
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to="/" replace />;
   }
 
   const handleSubmit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     setError(null);
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await register(email, password);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to sign in.');
+      setError(err instanceof ApiError ? err.message : 'Unable to create an account.');
     } finally {
       setIsSubmitting(false);
     }
@@ -37,7 +42,7 @@ export function LoginPage() {
       <div className="w-full max-w-sm border border-border bg-bg-panel p-8">
         <div className="mb-6">
           <Logo className="mb-3" />
-          <p className="text-sm text-text-muted">Sign in to continue.</p>
+          <p className="text-sm text-text-muted">Create an account to get started.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -58,9 +63,23 @@ export function LoginPage() {
             <input
               type="password"
               required
-              autoComplete="current-password"
+              minLength={8}
+              autoComplete="new-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              className="rounded border border-border bg-bg-base px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm text-text-muted">Confirm password</span>
+            <input
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
               className="rounded border border-border bg-bg-base px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
             />
           </label>
@@ -72,14 +91,14 @@ export function LoginPage() {
             disabled={isSubmitting}
             className="mt-2 rounded border border-accent bg-accent/10 px-4 py-2 text-sm text-text-primary disabled:opacity-50"
           >
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+            {isSubmitting ? 'Creating account...' : 'Create account'}
           </button>
         </form>
 
         <p className="mt-6 text-sm text-text-muted">
-          No account yet?{' '}
-          <Link to="/signup" className="text-accent">
-            Create one
+          Already have an account?{' '}
+          <Link to="/login" className="text-accent">
+            Sign in
           </Link>
         </p>
       </div>

@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Logo } from './Logo';
 
 const NAV_LINK_CLASS =
   'px-3 py-1.5 rounded text-sm text-text-muted hover:text-text-primary aria-[current=page]:text-text-primary aria-[current=page]:bg-bg-panel';
@@ -12,9 +13,7 @@ export function Layout() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
-            <span className="text-sm font-medium text-text-primary">
-              Infrastructure command center
-            </span>
+            <Logo />
             <nav className="flex items-center gap-1">
               <NavLink to="/" end className={NAV_LINK_CLASS}>
                 Overview

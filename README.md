@@ -1,4 +1,4 @@
-# Infrastructure Command Center
+# Servers-Manager
 
 A provider-agnostic infrastructure monitoring tool. It connects to VMs across any provider
 (Azure, VMware, OVH, bare metal — provider is just a metadata label, not an architectural
