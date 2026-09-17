@@ -87,3 +87,38 @@ export function ClockIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function ServicesIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <rect x="3" y="3" width="8" height="8" rx="1.5" />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" />
+      <rect x="13" y="13" width="8" height="8" rx="1.5" />
+    </svg>
+  );
+}
+
+export function BellIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+export function SlackIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none">
+      <rect x="9" y="2" width="3" height="8" rx="1.5" fill="#36C5F0" />
+      <rect x="9" y="14" width="3" height="8" rx="1.5" fill="#2EB67D" />
+      <rect x="14" y="9" width="8" height="3" rx="1.5" fill="#ECB22E" />
+      <rect x="2" y="9" width="8" height="3" rx="1.5" fill="#E01E5A" />
+      <circle cx="17.5" cy="6.5" r="2" fill="#36C5F0" />
+      <circle cx="6.5" cy="17.5" r="2" fill="#2EB67D" />
+      <circle cx="17.5" cy="17.5" r="2" fill="#ECB22E" />
+      <circle cx="6.5" cy="6.5" r="2" fill="#E01E5A" />
+    </svg>
+  );
+}

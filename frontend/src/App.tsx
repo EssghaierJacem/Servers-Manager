@@ -10,6 +10,8 @@ import { HostDetailPage } from './routes/HostDetailPage';
 import { DomainsListPage } from './routes/DomainsListPage';
 import { DomainDetailPage } from './routes/DomainDetailPage';
 import { ServiceDetailPage } from './routes/ServiceDetailPage';
+import { ServicesListPage } from './routes/ServicesListPage';
+import { AlertsPage } from './routes/AlertsPage';
 
 export function App() {
   return (
@@ -29,7 +31,9 @@ export function App() {
         <Route path="/hosts/:id" element={<HostDetailPage />} />
         <Route path="/domains" element={<DomainsListPage />} />
         <Route path="/domains/:id" element={<DomainDetailPage />} />
+        <Route path="/services" element={<ServicesListPage />} />
         <Route path="/services/:id" element={<ServiceDetailPage />} />
+        <Route path="/alerts" element={<AlertsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

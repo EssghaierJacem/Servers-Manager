@@ -2,7 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateHost } from '../hooks/useHosts';
 import { Card } from '../components/Card';
-import { TextField } from '../components/TextField';
+import { SelectField, TextField } from '../components/TextField';
 import { ApiError } from '../lib/apiClient';
 import { isPlausibleIpAddress } from '../lib/ipAddress';
 import type { HostProvider } from '../lib/types';
@@ -18,9 +18,6 @@ const PROVIDERS: HostProvider[] = [
 ];
 
 const DEFAULT_SSH_PORT = 22;
-
-const SELECT_CLASS =
-  'rounded-lg border border-border bg-bg-base px-3.5 py-2.5 text-sm text-text-primary outline-none transition-colors duration-150 hover:border-border-strong focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25';
 
 export function AddHostPage() {
   const navigate = useNavigate();
@@ -97,20 +94,17 @@ export function AddHostPage() {
             placeholder="prod-web-01"
           />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-text-secondary">Provider</span>
-            <select
-              value={provider}
-              onChange={(event) => setProvider(event.target.value as HostProvider)}
-              className={SELECT_CLASS}
-            >
-              {PROVIDERS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label="Provider"
+            value={provider}
+            onChange={(event) => setProvider(event.target.value as HostProvider)}
+          >
+            {PROVIDERS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </SelectField>
 
           <TextField
             label="IP address"

@@ -21,7 +21,7 @@ export function ServiceDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <BackLink to="/hosts" label="Back to hosts" />
+      <BackLink to="/services" label="Back to services" />
 
       <AsyncBoundary isLoading={service.isLoading} isError={service.isError} data={service.data}>
         {(data) => (
