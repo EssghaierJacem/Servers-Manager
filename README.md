@@ -9,9 +9,17 @@ monitoring domains and SSL certificates.
 
 **This repo covers Phase 1 (auth, host registration, SSH health checks), Phase 2
 (domain + SSL certificate monitoring), Phase 3 (per-container service tracking), Phase 4
-(deployment snapshots + rollback), and Phase 5 (alerting + idle/orphan insights).** A
-frontend UI beyond Swagger, real provider billing integration, and auto-rollback triggered
-by health-check failures are explicitly out of scope for now — see Roadmap below.
+(deployment snapshots + rollback), Phase 5 (alerting + idle/orphan insights), Phase 6
+(the `frontend/` dashboard), and Phase 7 (server-generated SSH keypairs for host
+registration).** Real provider billing integration and auto-rollback triggered by
+health-check failures are explicitly out of scope for now — see Roadmap below.
+
+> **Breaking change (Phase 7):** `POST /hosts` no longer accepts `ssh_private_key`. The
+> server now generates the keypair; see "How host registration works" below. This doesn't
+> affect the current `frontend/` UI - it has no host-creation form yet (Phase 6 scoped that
+> out) - but any future host-creation screen must be built against this new contract: no
+> private-key field, and it should surface the returned `ssh_public_key` +
+> `bootstrap_command` for the operator to copy onto the target machine.
 
 ## Tech stack
 
@@ -78,7 +86,9 @@ curl -X POST http://localhost:3000/auth/login \
 
 export TOKEN="<paste access_token here>"
 
-# Register a host (SSH private key is encrypted at rest and never returned again)
+# Register a host - the server generates an ed25519 keypair, encrypts the private
+# key at rest (never returned by any response), and hands back the public key plus
+# a one-line bootstrap command
 curl -X POST http://localhost:3000/hosts \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -87,10 +97,17 @@ curl -X POST http://localhost:3000/hosts \
     "provider": "azure",
     "ip_address": "203.0.113.10",
     "ssh_port": 22,
-    "ssh_user": "ubuntu",
-    "ssh_private_key": "-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----"
+    "ssh_user": "ubuntu"
   }'
-# -> { "id": "<host-id>", ... }
+# -> { "id": "<host-id>", "status": "pending_setup", "ssh_public_key": "ssh-ed25519 ...",
+#      "bootstrap_command": "mkdir -p ~/.ssh && ... && chmod 600 ~/.ssh/authorized_keys", ... }
+
+# Paste the bootstrap_command into the target machine's own console once, then check -
+# the host flips from pending_setup to healthy/degraded and setup_verified_at is set
+curl -X POST http://localhost:3000/hosts/<host-id>/check -H "Authorization: Bearer $TOKEN"
+
+# Re-fetch the public key / bootstrap command at any time without regenerating anything
+curl http://localhost:3000/hosts/<host-id>/setup-instructions -H "Authorization: Bearer $TOKEN"
 
 # List hosts / trigger a check / view results
 curl http://localhost:3000/hosts -H "Authorization: Bearer $TOKEN"
@@ -175,11 +192,48 @@ On trigger (scheduled or on-demand via `POST /hosts/:id/check`):
    - SSH connects and both commands behave (Docker not installed is a valid, non-failing
      state) → `healthy`
    - SSH connects but a command fails/times out unexpectedly → `degraded`
-   - SSH connection itself fails (timeout, auth failure, refused) → `unreachable`
-4. A `HealthCheckLog` row is written with the raw output (or error), and the host's
-   `status` / `last_checked_at` are updated.
-5. The `docker ps -a` output already fetched in step 3 is handed to the service sync (see
+   - The connection itself fails, and the failure is a network-level problem (refused,
+     timed out, DNS, handshake) → `unreachable`
+   - The connection itself fails because the SSH server rejected every offered key (an
+     auth failure, not a network failure) → see "How host registration works" below;
+     whether this is `pending_setup` or `unreachable` depends on whether the host has ever
+     completed setup
+4. On the first connection that succeeds (`healthy` or `degraded`) for a host still in
+   `pending_setup`, `setup_verified_at` is stamped - this host has now proven the bootstrap
+   command was run correctly at least once.
+5. A `HealthCheckLog` row is written with the raw output (or error, tagged with a `reason`),
+   and the host's `status` / `last_checked_at` are updated.
+6. The `docker ps -a` output already fetched in step 3 is handed to the service sync (see
    below) — no second SSH connection is opened for it.
+
+## How host registration works (server-generated keys)
+
+`POST /hosts` no longer accepts a private key from the caller - handling a plaintext SSH
+private key outside the backend (generating it, copying it around, OS-specific file
+permissions) was error-prone and briefly exposed key material. Instead:
+
+1. The server generates a fresh ed25519 keypair (`ssh-keypair.util.ts`) using Node's
+   built-in `crypto` module, then hand-encodes it into the OpenSSH wire format ssh2 (and
+   therefore `node-ssh`) expects - Node's own PKCS8 export isn't accepted by ssh2 for
+   ed25519, so this is verified against both `ssh-keygen -y` and ssh2's own key parser in
+   tests.
+2. The private key is encrypted at rest with the same `CryptoService` used since Phase 1
+   and is never returned by any API response, ever - the public key is safe to display,
+   copy, and re-fetch, and is returned in full on `POST /hosts` and
+   `GET /hosts/:id/setup-instructions`.
+3. `POST /hosts` also returns a one-line `bootstrap_command`
+   (`bootstrap-command.util.ts` - one function, used by both endpoints that return it) that
+   appends the public key to `~/.ssh/authorized_keys` for the given `ssh_user` when pasted
+   into the target machine's own console.
+4. The host starts in `pending_setup` - a distinct, non-alarming status for "registered but
+   the key hasn't been installed on the target yet," as opposed to `unreachable`, which
+   means something is actually wrong. An SSH auth rejection (`level: 'client-authentication'`
+   from ssh2) is classified in `health-check-status-mapper.ts`:
+   - `setup_verified_at` is still `null` → stays/becomes `pending_setup` with reason
+     `key_not_installed` (the bootstrap command likely hasn't run yet, or had a typo)
+   - `setup_verified_at` is already set → becomes `unreachable` with reason
+     `auth_revoked` (this host worked before; the key was removed or the user changed -
+     a real, reportable problem, not a first-time-setup situation)
 
 ## How the service (container) sync works
 
@@ -418,8 +472,14 @@ becomes idle again correctly re-fires.
 - ✅ Phase 3: Per-container service tracking (`docker ps -a`, status classification)
 - ✅ Phase 4: Deployment snapshots + one-click rollback, with a mandatory post-rollback
   health check and a full audit trail (`RollbackEvent`)
-- ✅ Phase 5 (this repo): Alerting (Slack, fixed condition set, cooldown-aware) + idle-host
-  and orphan-domain/host insights, both wired into the existing check processors and a new
+- ✅ Phase 5: Alerting (Slack, fixed condition set, cooldown-aware) + idle-host and
+  orphan-domain/host insights, both wired into the existing check processors and a new
   daily insights job
-- ⏭️ Later: a frontend UI + WebSocket live updates, real provider billing integration,
-  auto-rollback triggered by health-check failures, an email delivery backend
+- ✅ Phase 6: `frontend/` - a React/Vite/TanStack Query dashboard (login/sign-up, live
+  overview board, host/domain/service detail, press-and-hold rollback confirmation)
+- ✅ Phase 7 (this repo): Server-generated ed25519 keypairs for host registration - the
+  private key never leaves the backend, `pending_setup` status, and SSH auth-failure
+  classification that distinguishes "never set up" from "used to work, now broken"
+- ⏭️ Later: WebSocket live updates (replacing the frontend's 30s polling), real provider
+  billing integration, auto-rollback triggered by health-check failures, an email delivery
+  backend, SSH key rotation for existing hosts

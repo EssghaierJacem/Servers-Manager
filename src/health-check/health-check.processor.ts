@@ -32,7 +32,13 @@ const HEALTH_CHECK_STATUS_TO_HOST_STATUS: Record<HealthCheckStatus, HostStatus> 
   [HealthCheckStatus.HEALTHY]: HostStatus.HEALTHY,
   [HealthCheckStatus.DEGRADED]: HostStatus.DEGRADED,
   [HealthCheckStatus.UNREACHABLE]: HostStatus.UNREACHABLE,
+  [HealthCheckStatus.PENDING_SETUP]: HostStatus.PENDING_SETUP,
 };
+
+const SUCCESSFUL_CONNECTION_STATUSES: ReadonlySet<HealthCheckStatus> = new Set([
+  HealthCheckStatus.HEALTHY,
+  HealthCheckStatus.DEGRADED,
+]);
 
 @Processor(HEALTH_CHECK_QUEUE, { concurrency: HEALTH_CHECK_CONCURRENCY })
 export class HealthCheckProcessor extends WorkerHost {
@@ -93,6 +99,9 @@ export class HealthCheckProcessor extends WorkerHost {
 
     host.status = HEALTH_CHECK_STATUS_TO_HOST_STATUS[outcome.status];
     host.lastCheckedAt = new Date();
+    if (host.setupVerifiedAt === null && SUCCESSFUL_CONNECTION_STATUSES.has(outcome.status)) {
+      host.setupVerifiedAt = host.lastCheckedAt;
+    }
     await this.hostRepository.save(host);
 
     this.logger.debug(`Host ${host.id} (${host.name}) checked -> ${outcome.status}`);
@@ -123,7 +132,7 @@ export class HealthCheckProcessor extends WorkerHost {
       privateKey = this.cryptoService.decrypt(host.sshKeyEncrypted);
     } catch (error) {
       this.logger.error(`Failed to decrypt SSH key for host ${host.id}`);
-      return { outcome: mapSshFailureToOutcome(error), sshResults: null };
+      return { outcome: mapSshFailureToOutcome(error, host.setupVerifiedAt), sshResults: null };
     }
 
     try {
@@ -139,7 +148,7 @@ export class HealthCheckProcessor extends WorkerHost {
       return { outcome: mapCommandResultsToOutcome(results), sshResults: results };
     } catch (error) {
       this.logger.warn(`SSH connection to host ${host.id} failed: ${(error as Error).message}`);
-      return { outcome: mapSshFailureToOutcome(error), sshResults: null };
+      return { outcome: mapSshFailureToOutcome(error, host.setupVerifiedAt), sshResults: null };
     } finally {
       privateKey = '';
     }

@@ -16,6 +16,9 @@ export class OverviewResponseDto {
   @ApiProperty()
   unknown: number;
 
+  @ApiProperty({ description: 'Hosts registered but not yet reachable with their generated key' })
+  pending_setup: number;
+
   @ApiProperty()
   domains_total: number;
 
