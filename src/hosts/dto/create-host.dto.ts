@@ -39,9 +39,4 @@ export class CreateHostDto {
   @MinLength(1)
   @MaxLength(255)
   ssh_user: string;
-
-  @ApiProperty({ description: 'PEM-encoded SSH private key, never returned by the API' })
-  @IsString()
-  @MinLength(1)
-  ssh_private_key: string;
 }

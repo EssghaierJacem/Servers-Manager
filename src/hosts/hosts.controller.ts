@@ -18,10 +18,16 @@ import { UserRole } from '../common/constants/roles.constant';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { HostsService } from './hosts.service';
 import { CreateHostDto } from './dto/create-host.dto';
-import { HostResponseDto } from './dto/host-response.dto';
+import { CreateHostResponseDto, HostResponseDto } from './dto/host-response.dto';
 import { HostDetailResponseDto } from './dto/health-check-log-response.dto';
+import { SetupInstructionsResponseDto } from './dto/setup-instructions-response.dto';
 import { CheckTriggeredResponseDto } from '../common/dto/check-triggered-response.dto';
-import { toHostDetailResponseDto, toHostResponseDto } from './hosts.mapper';
+import {
+  toCreateHostResponseDto,
+  toHostDetailResponseDto,
+  toHostResponseDto,
+  toSetupInstructionsResponseDto,
+} from './hosts.mapper';
 
 @ApiTags('hosts')
 @ApiBearerAuth()
@@ -32,13 +38,17 @@ export class HostsController {
 
   @Post()
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Register a new host and encrypt its SSH key at rest' })
+  @ApiOperation({
+    summary:
+      'Register a new host - the server generates an ed25519 keypair, encrypts the private ' +
+      'key at rest, and returns the public key plus a bootstrap command to install it',
+  })
   async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateHostDto,
-  ): Promise<HostResponseDto> {
+  ): Promise<CreateHostResponseDto> {
     const host = await this.hostsService.create(user.orgId, dto);
-    return toHostResponseDto(host);
+    return toCreateHostResponseDto(host);
   }
 
   @Get()
@@ -59,6 +69,19 @@ export class HostsController {
     const host = await this.hostsService.findOneForOrgOrThrow(user.orgId, id);
     const logs = await this.hostsService.getRecentLogs(host.id);
     return toHostDetailResponseDto(host, logs);
+  }
+
+  @Get(':id/setup-instructions')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Re-fetch the public key and bootstrap command for a host, without regenerating them',
+  })
+  async getSetupInstructions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ): Promise<SetupInstructionsResponseDto> {
+    const host = await this.hostsService.findOneForOrgOrThrow(user.orgId, id);
+    return toSetupInstructionsResponseDto(host);
   }
 
   @Delete(':id')

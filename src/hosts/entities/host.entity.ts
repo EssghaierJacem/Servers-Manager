@@ -23,6 +23,7 @@ export enum HostStatus {
   HEALTHY = 'healthy',
   DEGRADED = 'degraded',
   UNREACHABLE = 'unreachable',
+  PENDING_SETUP = 'pending_setup',
 }
 
 export const DEFAULT_SSH_PORT = 22;
@@ -57,11 +58,17 @@ export class Host {
   @Column({ name: 'ssh_key_encrypted', type: 'text' })
   sshKeyEncrypted: string;
 
+  @Column({ name: 'ssh_public_key', type: 'text' })
+  sshPublicKey: string;
+
   @Column({ type: 'enum', enum: HostStatus, default: HostStatus.UNKNOWN })
   status: HostStatus;
 
   @Column({ name: 'last_checked_at', type: 'timestamptz', nullable: true })
   lastCheckedAt: Date | null;
+
+  @Column({ name: 'setup_verified_at', type: 'timestamptz', nullable: true })
+  setupVerifiedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

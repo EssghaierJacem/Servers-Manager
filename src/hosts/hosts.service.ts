@@ -13,6 +13,7 @@ import {
 import { HealthCheckLogService } from '../health-check-log/health-check-log.service';
 import { CreateHostDto } from './dto/create-host.dto';
 import { DEFAULT_SSH_PORT, Host, HostStatus } from './entities/host.entity';
+import { generateSshKeypair } from './ssh-keypair.util';
 
 export interface OverviewCounts {
   total_hosts: number;
@@ -20,6 +21,7 @@ export interface OverviewCounts {
   degraded: number;
   unreachable: number;
   unknown: number;
+  pending_setup: number;
 }
 
 @Injectable()
@@ -34,7 +36,8 @@ export class HostsService {
   ) {}
 
   async create(orgId: string, dto: CreateHostDto): Promise<Host> {
-    const sshKeyEncrypted = this.cryptoService.encrypt(dto.ssh_private_key);
+    const { privateKey, publicKey } = generateSshKeypair(dto.name);
+    const sshKeyEncrypted = this.cryptoService.encrypt(privateKey);
 
     const host = this.hostRepository.create({
       orgId,
@@ -44,8 +47,10 @@ export class HostsService {
       sshPort: dto.ssh_port ?? DEFAULT_SSH_PORT,
       sshUser: dto.ssh_user,
       sshKeyEncrypted,
-      status: HostStatus.UNKNOWN,
+      sshPublicKey: publicKey,
+      status: HostStatus.PENDING_SETUP,
       lastCheckedAt: null,
+      setupVerifiedAt: null,
     });
 
     return this.hostRepository.save(host);
@@ -92,6 +97,7 @@ export class HostsService {
       [HostStatus.DEGRADED]: 0,
       [HostStatus.UNREACHABLE]: 0,
       [HostStatus.UNKNOWN]: 0,
+      [HostStatus.PENDING_SETUP]: 0,
     };
 
     for (const host of hosts) {
@@ -104,6 +110,7 @@ export class HostsService {
       degraded: byStatus[HostStatus.DEGRADED],
       unreachable: byStatus[HostStatus.UNREACHABLE],
       unknown: byStatus[HostStatus.UNKNOWN],
+      pending_setup: byStatus[HostStatus.PENDING_SETUP],
     };
   }
 }
