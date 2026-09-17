@@ -5,11 +5,13 @@ import { useOverview } from '../hooks/useOverview';
 import { useAllServices } from '../hooks/useAllServices';
 import { AsyncBoundary } from '../components/AsyncBoundary';
 import { Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
+import { Skeleton } from '../components/Skeleton';
 import { StatCard } from '../components/StatCard';
 import { StatusBreakdownBar } from '../components/StatusBreakdownBar';
 import { StatusDot } from '../components/StatusDot';
 import { BoardTable } from '../components/BoardTable';
-import { DomainsIcon, HostsIcon, OverviewIcon } from '../components/icons';
+import { ClockIcon, DomainsIcon, HostsIcon, InboxIcon, OverviewIcon } from '../components/icons';
 import { formatRelativeToNow } from '../lib/formatters';
 import type { Domain } from '../lib/types';
 
@@ -23,6 +25,30 @@ function upcomingExpirations(domains: Domain[]): Domain[] {
     .slice(0, 5);
 }
 
+function OverviewSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="p-5">
+            <Skeleton className="mb-3 h-3.5 w-16" />
+            <Skeleton className="h-7 w-12" />
+          </Card>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="p-5">
+            <Skeleton className="mb-4 h-3.5 w-24" />
+            <Skeleton className="mb-3 h-2.5 w-full" />
+            <Skeleton className="h-3.5 w-40" />
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function OverviewPage() {
   const overview = useOverview();
   const hosts = useHosts();
@@ -31,9 +57,19 @@ export function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-xl text-text-primary">Overview</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Overview</h1>
+        <p className="text-sm text-text-muted">
+          A live snapshot of every host, domain, and service you're monitoring.
+        </p>
+      </div>
 
-      <AsyncBoundary isLoading={overview.isLoading} isError={overview.isError} data={overview.data}>
+      <AsyncBoundary
+        isLoading={overview.isLoading}
+        isError={overview.isError}
+        data={overview.data}
+        loadingFallback={<OverviewSkeleton />}
+      >
         {(data) => (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -160,22 +196,34 @@ export function OverviewPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="flex flex-col lg:col-span-2">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h2 className="text-text-primary">Hosts</h2>
-            <Link to="/hosts" className="text-sm text-accent">
-              View all
+            <h2 className="font-medium text-text-primary">Hosts</h2>
+            <Link
+              to="/hosts"
+              className="text-sm font-medium text-accent transition-colors hover:text-accent-strong"
+            >
+              View all →
             </Link>
           </div>
           <AsyncBoundary isLoading={hosts.isLoading} isError={hosts.isError} data={hosts.data}>
             {(rows) => (
               <BoardTable
                 rows={rows.slice(0, 6)}
-                emptyLabel="No hosts registered yet."
+                emptyState={
+                  <EmptyState
+                    icon={<HostsIcon className="h-full w-full" />}
+                    title="No hosts yet"
+                    description="Add a host to start seeing its status here."
+                  />
+                }
                 keyFn={(h) => h.id}
                 columns={[
                   {
                     header: 'Name',
                     render: (h) => (
-                      <Link to={`/hosts/${h.id}`} className="font-mono text-accent">
+                      <Link
+                        to={`/hosts/${h.id}`}
+                        className="font-mono font-medium text-text-primary hover:text-accent"
+                      >
                         {h.name}
                       </Link>
                     ),
@@ -198,7 +246,7 @@ export function OverviewPage() {
 
         <Card className="flex flex-col">
           <div className="border-b border-border px-5 py-4">
-            <h2 className="text-text-primary">Upcoming domain expirations</h2>
+            <h2 className="font-medium text-text-primary">Upcoming domain expirations</h2>
           </div>
           <AsyncBoundary
             isLoading={domains.isLoading}
@@ -209,16 +257,24 @@ export function OverviewPage() {
               const upcoming = upcomingExpirations(rows);
               if (upcoming.length === 0) {
                 return (
-                  <p className="px-5 py-6 text-sm text-text-muted">
-                    No domains with a known expiration date yet.
-                  </p>
+                  <EmptyState
+                    icon={<ClockIcon className="h-full w-full" />}
+                    title="Nothing expiring soon"
+                    description="Domains with a known expiration date will be listed here."
+                  />
                 );
               }
               return (
                 <ul className="divide-y divide-border">
                   {upcoming.map((d) => (
-                    <li key={d.id} className="flex items-center justify-between px-5 py-3 text-sm">
-                      <Link to={`/domains/${d.id}`} className="font-mono text-accent">
+                    <li
+                      key={d.id}
+                      className="flex items-center justify-between px-5 py-3.5 text-sm"
+                    >
+                      <Link
+                        to={`/domains/${d.id}`}
+                        className="font-mono font-medium text-text-primary hover:text-accent"
+                      >
                         {d.hostname}
                       </Link>
                       <span className="text-text-muted">
@@ -235,7 +291,7 @@ export function OverviewPage() {
 
       <Card className="flex flex-col">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-text-primary">Services</h2>
+          <h2 className="font-medium text-text-primary">Services</h2>
           <span className="text-sm text-text-muted">{services.data?.length ?? 0} total</span>
         </div>
         <AsyncBoundary
@@ -246,13 +302,22 @@ export function OverviewPage() {
           {(rows) => (
             <BoardTable
               rows={rows.slice(0, 8)}
-              emptyLabel="No containers discovered yet."
+              emptyState={
+                <EmptyState
+                  icon={<InboxIcon className="h-full w-full" />}
+                  title="No containers discovered yet"
+                  description="Services are discovered automatically the first time each host is checked."
+                />
+              }
               keyFn={(s) => s.id}
               columns={[
                 {
                   header: 'Container',
                   render: (s) => (
-                    <Link to={`/services/${s.id}`} className="font-mono text-accent">
+                    <Link
+                      to={`/services/${s.id}`}
+                      className="font-mono font-medium text-text-primary hover:text-accent"
+                    >
                       {s.container_name}
                     </Link>
                   ),

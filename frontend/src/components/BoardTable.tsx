@@ -9,21 +9,24 @@ interface BoardTableProps<T> {
   rows: T[];
   columns: BoardTableColumn<T>[];
   keyFn: (row: T) => string;
-  emptyLabel: string;
+  emptyState: ReactNode;
 }
 
 /** The one table used by every list/board screen, styled for a card container. */
-export function BoardTable<T>({ rows, columns, keyFn, emptyLabel }: BoardTableProps<T>) {
+export function BoardTable<T>({ rows, columns, keyFn, emptyState }: BoardTableProps<T>) {
   if (rows.length === 0) {
-    return <p className="px-5 py-6 text-sm text-text-muted">{emptyLabel}</p>;
+    return <>{emptyState}</>;
   }
 
   return (
     <table className="w-full border-collapse text-sm">
       <thead>
-        <tr className="border-b border-border text-left text-text-muted">
+        <tr className="border-b border-border text-left">
           {columns.map((column) => (
-            <th key={column.header} className="px-5 py-3 font-normal">
+            <th
+              key={column.header}
+              className="px-5 py-3 text-xs font-medium uppercase tracking-wide text-text-muted"
+            >
               {column.header}
             </th>
           ))}
@@ -33,10 +36,10 @@ export function BoardTable<T>({ rows, columns, keyFn, emptyLabel }: BoardTablePr
         {rows.map((row) => (
           <tr
             key={keyFn(row)}
-            className="border-b border-border last:border-b-0 hover:bg-bg-base/60"
+            className="border-b border-border transition-colors duration-100 last:border-b-0 hover:bg-bg-elevated/60"
           >
             {columns.map((column) => (
-              <td key={column.header} className="px-5 py-3">
+              <td key={column.header} className="px-5 py-3.5 text-text-secondary">
                 {column.render(row)}
               </td>
             ))}

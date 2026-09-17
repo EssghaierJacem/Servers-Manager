@@ -25,7 +25,7 @@ describe('CopyButton', () => {
     });
 
     expect(writeText).toHaveBeenCalledWith('paste-me');
-    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copied ✓' })).toBeInTheDocument();
   });
 
   it('reverts to the original label after the confirmation window', async () => {
@@ -35,7 +35,7 @@ describe('CopyButton', () => {
       fireEvent.click(screen.getByRole('button'));
       await Promise.resolve();
     });
-    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copied ✓' })).toBeInTheDocument();
 
     await act(async () => {
       vi.advanceTimersByTime(2000);

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../lib/apiClient';
 import { Logo } from '../components/Logo';
 import { Card } from '../components/Card';
+import { TextField } from '../components/TextField';
 
 export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
@@ -27,59 +28,65 @@ export function LoginPage() {
       await login(email, password);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to sign in.');
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Unable to sign in. Check your credentials and try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-bg-base px-4">
       <Card className="w-full max-w-sm p-8">
-        <div className="mb-6">
-          <Logo className="mb-3" />
-          <p className="text-sm text-text-muted">Sign in to continue.</p>
+        <div className="mb-7">
+          <Logo className="mb-4" />
+          <h1 className="text-xl font-semibold tracking-tight text-text-primary">Welcome back</h1>
+          <p className="mt-1 text-sm text-text-muted">
+            Sign in to view the health of your infrastructure.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">Email</span>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="rounded border border-border bg-bg-base px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="Email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">Password</span>
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="rounded border border-border bg-bg-base px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="Password"
+            type="password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
 
-          {error && <p className="text-sm text-status-critical">{error}</p>}
+          {error && (
+            <p className="rounded-lg bg-status-critical/10 px-3 py-2 text-sm text-status-critical">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-bg-base hover:bg-accent/90 disabled:opacity-50"
+            className="mt-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-card transition-colors duration-150 hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 
-        <p className="mt-6 text-sm text-text-muted">
+        <p className="mt-6 text-center text-sm text-text-muted">
           No account yet?{' '}
-          <Link to="/signup" className="text-accent">
+          <Link to="/signup" className="font-medium text-accent hover:text-accent-strong">
             Create one
           </Link>
         </p>

@@ -31,14 +31,14 @@ export function RollbackPanel({ serviceId, currentImageTag, snapshots }: Rollbac
 
   if (rollbackEventId) {
     return (
-      <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-bg-base p-4">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-sm text-text-primary">Rollback in progress</span>
+          <span className="text-sm font-medium text-text-primary">Rollback in progress</span>
           {rollbackEvent.data && <StatusDot status={rollbackEvent.data.status} />}
         </div>
-        <ul className="flex flex-col gap-1 font-mono text-xs text-text-muted">
+        <ul className="flex flex-col gap-1 rounded-lg bg-bg-panel font-mono text-xs text-text-muted">
           {(rollbackEvent.data?.log_output ?? []).map((entry, index) => (
-            <li key={index} className="border-b border-border py-1 last:border-b-0">
+            <li key={index} className="border-b border-border px-3 py-2 last:border-b-0">
               <span className="text-text-primary">{entry.step}</span>
               {entry.command && <div>$ {entry.command}</div>}
               {entry.exit_code !== undefined && entry.exit_code !== null && (
@@ -53,10 +53,14 @@ export function RollbackPanel({ serviceId, currentImageTag, snapshots }: Rollbac
           ))}
         </ul>
         {rollbackEvent.data?.status === 'succeeded' && (
-          <p className="text-sm text-status-healthy">Rollback succeeded.</p>
+          <p className="rounded-lg bg-status-healthy/10 px-3 py-2 text-sm text-status-healthy">
+            Rollback succeeded.
+          </p>
         )}
         {rollbackEvent.data?.status === 'failed' && (
-          <p className="text-sm text-status-critical">Rollback failed. See the log above.</p>
+          <p className="rounded-lg bg-status-critical/10 px-3 py-2 text-sm text-status-critical">
+            Rollback failed. See the log above.
+          </p>
         )}
         {(rollbackEvent.data?.status === 'succeeded' ||
           rollbackEvent.data?.status === 'failed') && (
@@ -66,7 +70,7 @@ export function RollbackPanel({ serviceId, currentImageTag, snapshots }: Rollbac
               setRollbackEventId(null);
               setSelectedSnapshotId('');
             }}
-            className="self-start rounded border border-border px-3 py-1.5 text-sm text-text-muted hover:text-text-primary"
+            className="self-start rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary transition-colors duration-150 hover:border-border-strong hover:text-text-primary"
           >
             Start another rollback
           </button>
@@ -78,13 +82,13 @@ export function RollbackPanel({ serviceId, currentImageTag, snapshots }: Rollbac
   return (
     <div className="flex flex-col gap-4">
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-text-muted">Roll back to</span>
+        <span className="text-sm font-medium text-text-secondary">Roll back to</span>
         <select
           value={selectedSnapshotId}
           onChange={(event) => setSelectedSnapshotId(event.target.value)}
-          className="rounded border border-border bg-bg-base px-3 py-2 font-mono text-sm text-text-primary outline-none focus-visible:border-accent"
+          className="rounded-lg border border-border bg-bg-base px-3.5 py-2.5 font-mono text-sm text-text-primary outline-none transition-colors duration-150 hover:border-border-strong focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
         >
-          <option value="">Select a previous deployment...</option>
+          <option value="">Select a previous deployment…</option>
           {rollbackableSnapshots.map((snapshot) => (
             <option key={snapshot.id} value={snapshot.id}>
               {snapshot.image_tag} - deployed {formatTimestamp(snapshot.deployed_at)}
@@ -94,9 +98,9 @@ export function RollbackPanel({ serviceId, currentImageTag, snapshots }: Rollbac
       </label>
 
       {targetSnapshot && (
-        <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
+        <div className="flex flex-col gap-4 rounded-lg border border-status-critical/30 bg-status-critical/5 p-4">
           <p className="font-mono text-sm text-text-primary">
-            {currentImageTag} <span className="text-text-muted">to</span> {targetSnapshot.image_tag}
+            {currentImageTag} <span className="text-text-muted">→</span> {targetSnapshot.image_tag}
           </p>
           <p className="text-sm text-text-muted">
             This stops and recreates the running container. A post-rollback health check must pass
@@ -104,7 +108,7 @@ export function RollbackPanel({ serviceId, currentImageTag, snapshots }: Rollbac
           </p>
           <PressHoldButton
             label="Hold to roll back"
-            holdingLabel="Rolling back..."
+            holdingLabel="Rolling back…"
             onConfirm={handleConfirm}
           />
         </div>
