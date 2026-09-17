@@ -13,6 +13,7 @@ export interface AppConfig {
     refreshExpiresIn: string;
   };
   sshKeyEncryptionSecret: string;
+  corsOrigins: string[];
   healthCheck: {
     concurrency: number;
     intervalMs: number;
@@ -42,6 +43,10 @@ export default (): AppConfig => ({
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
   },
   sshKeyEncryptionSecret: process.env.SSH_KEY_ENCRYPTION_SECRET as string,
+  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://localhost:5174')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0),
   healthCheck: {
     concurrency: parseInt(process.env.HEALTH_CHECK_CONCURRENCY ?? '5', 10),
     intervalMs: parseInt(process.env.HEALTH_CHECK_INTERVAL_MS ?? '120000', 10),
