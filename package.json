@@ -1,5 +1,5 @@
 {
-  "name": "infra-command-center",
+  "name": "servers-manager",
   "version": "0.1.0",
   "description": "Provider-agnostic infrastructure monitoring tool - Phase 1: Auth + Host Connectivity + Health Checks",
   "license": "MIT",
