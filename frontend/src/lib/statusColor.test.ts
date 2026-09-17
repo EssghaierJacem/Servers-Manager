@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getStatusColorKey } from './statusColor';
+import { formatStatusLabel, getStatusColorKey } from './statusColor';
 
 describe('getStatusColorKey', () => {
   it.each(['healthy', 'running', 'valid', 'resolving', 'sent'])(
@@ -25,7 +25,7 @@ describe('getStatusColorKey', () => {
     expect(getStatusColorKey(status)).toBe('critical');
   });
 
-  it.each(['unknown', 'stopped', 'pending'])('maps "%s" to unknown', (status) => {
+  it.each(['unknown', 'stopped', 'pending', 'pending_setup'])('maps "%s" to unknown', (status) => {
     expect(getStatusColorKey(status)).toBe('unknown');
   });
 
@@ -33,7 +33,22 @@ describe('getStatusColorKey', () => {
     expect(getStatusColorKey('stopped')).not.toBe('critical');
   });
 
+  it('treats "pending_setup" as a neutral state, never critical', () => {
+    expect(getStatusColorKey('pending_setup')).not.toBe('critical');
+  });
+
   it('falls back to unknown for an unrecognized status', () => {
     expect(getStatusColorKey('some-future-status')).toBe('unknown');
+  });
+});
+
+describe('formatStatusLabel', () => {
+  it.each([
+    ['healthy', 'Healthy'],
+    ['crash_loop', 'Crash loop'],
+    ['pending_setup', 'Pending setup'],
+    ['not_resolving', 'Not resolving'],
+  ])('formats "%s" as "%s"', (status, expected) => {
+    expect(formatStatusLabel(status)).toBe(expected);
   });
 });

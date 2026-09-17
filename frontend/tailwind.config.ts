@@ -13,22 +13,22 @@ export default {
       transparent: 'transparent',
       current: 'currentColor',
       bg: {
-        base: 'var(--bg-base)',
-        panel: 'var(--bg-panel)',
+        base: 'rgb(var(--bg-base) / <alpha-value>)',
+        panel: 'rgb(var(--bg-panel) / <alpha-value>)',
       },
       border: {
-        DEFAULT: 'var(--border)',
+        DEFAULT: 'rgb(var(--border) / <alpha-value>)',
       },
       text: {
-        primary: 'var(--text-primary)',
-        muted: 'var(--text-muted)',
+        primary: 'rgb(var(--text-primary) / <alpha-value>)',
+        muted: 'rgb(var(--text-muted) / <alpha-value>)',
       },
-      accent: 'var(--accent)',
+      accent: 'rgb(var(--accent) / <alpha-value>)',
       status: {
-        healthy: 'var(--status-healthy)',
-        warning: 'var(--status-warning)',
-        critical: 'var(--status-critical)',
-        unknown: 'var(--status-unknown)',
+        healthy: 'rgb(var(--status-healthy) / <alpha-value>)',
+        warning: 'rgb(var(--status-warning) / <alpha-value>)',
+        critical: 'rgb(var(--status-critical) / <alpha-value>)',
+        unknown: 'rgb(var(--status-unknown) / <alpha-value>)',
       },
     },
     fontFamily: {
@@ -63,6 +63,8 @@ export default {
       sm: '3px',
       DEFAULT: '4px',
       md: '6px',
+      lg: '10px',
+      xl: '14px',
       full: '9999px',
     },
     extend: {

@@ -1,6 +1,6 @@
 // Mirrors the backend's response DTOs (Phases 1-5) field-for-field.
 
-export type HostStatus = 'unknown' | 'healthy' | 'degraded' | 'unreachable';
+export type HostStatus = 'unknown' | 'healthy' | 'degraded' | 'unreachable' | 'pending_setup';
 export type HostProvider =
   'azure' | 'vmware' | 'ovh' | 'aws' | 'digitalocean' | 'bare_metal' | 'other';
 
@@ -23,13 +23,32 @@ export interface Host {
   ip_address: string;
   ssh_port: number;
   ssh_user: string;
+  ssh_public_key: string;
   status: HostStatus;
   last_checked_at: string | null;
+  setup_verified_at: string | null;
   created_at: string;
 }
 
 export interface HostDetail extends Host {
   recent_logs: HealthCheckLog[];
+}
+
+export interface CreateHostRequest {
+  name: string;
+  provider: HostProvider;
+  ip_address: string;
+  ssh_port: number;
+  ssh_user: string;
+}
+
+export interface CreateHostResponse extends Host {
+  bootstrap_command: string;
+}
+
+export interface SetupInstructions {
+  ssh_public_key: string;
+  bootstrap_command: string;
 }
 
 export interface Domain {
@@ -121,6 +140,7 @@ export interface Overview {
   degraded: number;
   unreachable: number;
   unknown: number;
+  pending_setup: number;
   domains_total: number;
   ssl_valid: number;
   ssl_expiring_soon: number;

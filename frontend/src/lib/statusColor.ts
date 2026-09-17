@@ -25,3 +25,9 @@ export function getStatusColorKey(status: string): StatusColorKey {
   if (CRITICAL.has(status)) return 'critical';
   return 'unknown';
 }
+
+/** Turns a raw backend status word ("crash_loop") into display text ("Crash loop"). */
+export function formatStatusLabel(status: string): string {
+  const withSpaces = status.replace(/_/g, ' ');
+  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+}

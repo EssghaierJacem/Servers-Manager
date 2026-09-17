@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useService, useServiceSnapshots, useTriggerServiceCheck } from '../hooks/useServices';
 import { AsyncBoundary } from '../components/AsyncBoundary';
-import { SectionHeader } from '../components/SectionHeader';
+import { Card } from '../components/Card';
 import { StatusDot } from '../components/StatusDot';
 import { BoardTable } from '../components/BoardTable';
 import { CheckNowButton } from '../components/CheckNowButton';
@@ -17,19 +17,20 @@ export function ServiceDetailPage() {
   const triggerCheck = useTriggerServiceCheck(id ?? '');
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-8">
       <AsyncBoundary isLoading={service.isLoading} isError={service.isError} data={service.data}>
         {(data) => (
           <>
-            <section className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h1 className="font-mono text-xl text-text-primary">{data.container_name}</h1>
-                <CheckNowButton
-                  onCheck={() => triggerCheck.mutate()}
-                  isPending={triggerCheck.isPending}
-                />
-              </div>
-              <dl className="grid grid-cols-2 gap-x-8 gap-y-3 border border-border p-4 text-sm sm:grid-cols-4">
+            <div className="flex items-center justify-between">
+              <h1 className="font-mono text-xl text-text-primary">{data.container_name}</h1>
+              <CheckNowButton
+                onCheck={() => triggerCheck.mutate()}
+                isPending={triggerCheck.isPending}
+              />
+            </div>
+
+            <Card className="p-5">
+              <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">
                 <Field label="Status" value={<StatusDot status={data.status} />} />
                 <Field
                   label="Image"
@@ -54,10 +55,10 @@ export function ServiceDetailPage() {
                 />
                 <Field label="Last checked" value={formatTimestamp(data.last_checked_at)} />
               </dl>
-            </section>
+            </Card>
 
-            <section className="flex flex-col gap-4">
-              <SectionHeader title="Roll back" />
+            <Card className="p-5">
+              <h2 className="mb-4 text-text-primary">Roll back</h2>
               <AsyncBoundary
                 isLoading={snapshots.isLoading}
                 isError={snapshots.isError}
@@ -71,10 +72,13 @@ export function ServiceDetailPage() {
                   />
                 )}
               </AsyncBoundary>
-            </section>
+            </Card>
 
-            <section className="flex flex-col gap-2">
-              <SectionHeader title="Deployment history" count={snapshots.data?.length} />
+            <Card className="flex flex-col">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <h2 className="text-text-primary">Deployment history</h2>
+                <span className="text-sm text-text-muted">{snapshots.data?.length ?? 0}</span>
+              </div>
               <AsyncBoundary
                 isLoading={snapshots.isLoading}
                 isError={snapshots.isError}
@@ -93,7 +97,7 @@ export function ServiceDetailPage() {
                       {
                         header: 'Current',
                         render: (s) =>
-                          s.is_current ? <StatusDot status="running" label="current" /> : '',
+                          s.is_current ? <StatusDot status="running" label="Current" /> : '',
                       },
                       { header: 'Deployed at', render: (s) => formatTimestamp(s.deployed_at) },
                       {
@@ -109,12 +113,14 @@ export function ServiceDetailPage() {
                   />
                 )}
               </AsyncBoundary>
-            </section>
+            </Card>
 
-            <section className="flex flex-col gap-2">
-              <SectionHeader title="Check history" />
+            <Card className="flex flex-col">
+              <div className="border-b border-border px-5 py-4">
+                <h2 className="text-text-primary">Check history</h2>
+              </div>
               <HealthLogList logs={data.recent_logs} />
-            </section>
+            </Card>
           </>
         )}
       </AsyncBoundary>

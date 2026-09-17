@@ -5,6 +5,7 @@ import { LoginPage } from './routes/LoginPage';
 import { SignupPage } from './routes/SignupPage';
 import { OverviewPage } from './routes/OverviewPage';
 import { HostsListPage } from './routes/HostsListPage';
+import { AddHostPage } from './routes/AddHostPage';
 import { HostDetailPage } from './routes/HostDetailPage';
 import { DomainsListPage } from './routes/DomainsListPage';
 import { DomainDetailPage } from './routes/DomainDetailPage';
@@ -24,6 +25,7 @@ export function App() {
       >
         <Route path="/" element={<OverviewPage />} />
         <Route path="/hosts" element={<HostsListPage />} />
+        <Route path="/hosts/new" element={<AddHostPage />} />
         <Route path="/hosts/:id" element={<HostDetailPage />} />
         <Route path="/domains" element={<DomainsListPage />} />
         <Route path="/domains/:id" element={<DomainDetailPage />} />
