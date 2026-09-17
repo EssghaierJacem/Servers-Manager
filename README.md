@@ -10,16 +10,17 @@ monitoring domains and SSL certificates.
 **This repo covers Phase 1 (auth, host registration, SSH health checks), Phase 2
 (domain + SSL certificate monitoring), Phase 3 (per-container service tracking), Phase 4
 (deployment snapshots + rollback), Phase 5 (alerting + idle/orphan insights), Phase 6
-(the `frontend/` dashboard), and Phase 7 (server-generated SSH keypairs for host
-registration).** Real provider billing integration and auto-rollback triggered by
+(the `frontend/` dashboard), Phase 7 (server-generated SSH keypairs for host
+registration), and Phase 8 (an "Add host" UI end-to-end, a sidebar admin-dashboard
+redesign of the frontend, and enabling CORS so the frontend can actually reach this API
+from the browser).** Real provider billing integration and auto-rollback triggered by
 health-check failures are explicitly out of scope for now — see Roadmap below.
 
 > **Breaking change (Phase 7):** `POST /hosts` no longer accepts `ssh_private_key`. The
-> server now generates the keypair; see "How host registration works" below. This doesn't
-> affect the current `frontend/` UI - it has no host-creation form yet (Phase 6 scoped that
-> out) - but any future host-creation screen must be built against this new contract: no
-> private-key field, and it should surface the returned `ssh_public_key` +
-> `bootstrap_command` for the operator to copy onto the target machine.
+> server now generates the keypair; see "How host registration works" below. `frontend/`'s
+> `/hosts/new` form (added in Phase 8) is already built against this new contract: no
+> private-key field, and it surfaces the returned `ssh_public_key` + `bootstrap_command`
+> for the operator to copy onto the target machine.
 
 ## Tech stack
 
@@ -69,6 +70,10 @@ npm run start:dev
 
 The API listens on `http://localhost:3000` by default. Swagger/OpenAPI docs are served at
 `http://localhost:3000/api/docs` in non-production environments.
+
+CORS is enabled for the origins listed in `CORS_ORIGINS` (comma-separated; defaults to the
+frontend's Vite dev server ports, `5173` and `5174`) - the `frontend/` app runs on a different
+origin than this API, so without this the browser blocks every request it makes.
 
 ## Example usage
 
@@ -477,9 +482,14 @@ becomes idle again correctly re-fires.
   daily insights job
 - ✅ Phase 6: `frontend/` - a React/Vite/TanStack Query dashboard (login/sign-up, live
   overview board, host/domain/service detail, press-and-hold rollback confirmation)
-- ✅ Phase 7 (this repo): Server-generated ed25519 keypairs for host registration - the
-  private key never leaves the backend, `pending_setup` status, and SSH auth-failure
-  classification that distinguishes "never set up" from "used to work, now broken"
+- ✅ Phase 7: Server-generated ed25519 keypairs for host registration - the private key
+  never leaves the backend, `pending_setup` status, and SSH auth-failure classification
+  that distinguishes "never set up" from "used to work, now broken"
+- ✅ Phase 8 (this repo): An "Add host" flow built end-to-end through the UI
+  (`/hosts/new` → setup-instructions view → live "Verify connection"), a sidebar
+  admin-dashboard redesign of `frontend/` (stat cards, status-breakdown bars, colored
+  status badges), and `CORS_ORIGINS` enabled on the backend so the frontend can reach it
+  from a real browser at all (previously only ever exercised via `curl`)
 - ⏭️ Later: WebSocket live updates (replacing the frontend's 30s polling), real provider
   billing integration, auto-rollback triggered by health-check failures, an email delivery
   backend, SSH key rotation for existing hosts

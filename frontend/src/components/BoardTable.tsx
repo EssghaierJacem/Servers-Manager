@@ -12,14 +12,10 @@ interface BoardTableProps<T> {
   emptyLabel: string;
 }
 
-/**
- * The one dense, hairline-divided, monospace-set table used by the
- * overview board and every list screen - departure-board style, no
- * rounded cards, no zebra striping.
- */
+/** The one table used by every list/board screen, styled for a card container. */
 export function BoardTable<T>({ rows, columns, keyFn, emptyLabel }: BoardTableProps<T>) {
   if (rows.length === 0) {
-    return <p className="py-4 font-mono text-sm text-text-muted">{emptyLabel}</p>;
+    return <p className="px-5 py-6 text-sm text-text-muted">{emptyLabel}</p>;
   }
 
   return (
@@ -27,7 +23,7 @@ export function BoardTable<T>({ rows, columns, keyFn, emptyLabel }: BoardTablePr
       <thead>
         <tr className="border-b border-border text-left text-text-muted">
           {columns.map((column) => (
-            <th key={column.header} className="py-2 pr-4 font-normal">
+            <th key={column.header} className="px-5 py-3 font-normal">
               {column.header}
             </th>
           ))}
@@ -35,9 +31,12 @@ export function BoardTable<T>({ rows, columns, keyFn, emptyLabel }: BoardTablePr
       </thead>
       <tbody>
         {rows.map((row) => (
-          <tr key={keyFn(row)} className="border-b border-border last:border-b-0">
+          <tr
+            key={keyFn(row)}
+            className="border-b border-border last:border-b-0 hover:bg-bg-base/60"
+          >
             {columns.map((column) => (
-              <td key={column.header} className="py-2 pr-4">
+              <td key={column.header} className="px-5 py-3">
                 {column.render(row)}
               </td>
             ))}

@@ -31,7 +31,7 @@ export function RollbackPanel({ serviceId, currentImageTag, snapshots }: Rollbac
 
   if (rollbackEventId) {
     return (
-      <div className="flex flex-col gap-3 border border-border p-4">
+      <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
         <div className="flex items-center justify-between">
           <span className="font-mono text-sm text-text-primary">Rollback in progress</span>
           {rollbackEvent.data && <StatusDot status={rollbackEvent.data.status} />}
@@ -94,7 +94,7 @@ export function RollbackPanel({ serviceId, currentImageTag, snapshots }: Rollbac
       </label>
 
       {targetSnapshot && (
-        <div className="flex flex-col gap-4 border border-border p-4">
+        <div className="flex flex-col gap-4 rounded-lg border border-border p-4">
           <p className="font-mono text-sm text-text-primary">
             {currentImageTag} <span className="text-text-muted">to</span> {targetSnapshot.image_tag}
           </p>

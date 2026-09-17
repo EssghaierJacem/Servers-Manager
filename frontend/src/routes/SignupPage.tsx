@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../lib/apiClient';
 import { Logo } from '../components/Logo';
+import { Card } from '../components/Card';
 
 export function SignupPage() {
   const { register, isAuthenticated } = useAuth();
@@ -39,7 +40,7 @@ export function SignupPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm border border-border bg-bg-panel p-8">
+      <Card className="w-full max-w-sm p-8">
         <div className="mb-6">
           <Logo className="mb-3" />
           <p className="text-sm text-text-muted">Create an account to get started.</p>
@@ -89,7 +90,7 @@ export function SignupPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-2 rounded border border-accent bg-accent/10 px-4 py-2 text-sm text-text-primary disabled:opacity-50"
+            className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-bg-base hover:bg-accent/90 disabled:opacity-50"
           >
             {isSubmitting ? 'Creating account...' : 'Create account'}
           </button>
@@ -101,7 +102,7 @@ export function SignupPage() {
             Sign in
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

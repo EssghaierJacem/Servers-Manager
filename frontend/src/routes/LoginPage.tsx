@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../lib/apiClient';
 import { Logo } from '../components/Logo';
+import { Card } from '../components/Card';
 
 export function LoginPage() {
   const { login, isAuthenticated } = useAuth();
@@ -34,7 +35,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm border border-border bg-bg-panel p-8">
+      <Card className="w-full max-w-sm p-8">
         <div className="mb-6">
           <Logo className="mb-3" />
           <p className="text-sm text-text-muted">Sign in to continue.</p>
@@ -70,7 +71,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-2 rounded border border-accent bg-accent/10 px-4 py-2 text-sm text-text-primary disabled:opacity-50"
+            className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-bg-base hover:bg-accent/90 disabled:opacity-50"
           >
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
@@ -82,7 +83,7 @@ export function LoginPage() {
             Create one
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

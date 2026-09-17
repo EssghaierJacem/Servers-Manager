@@ -10,6 +10,9 @@ import { AppConfig } from './config/configuration';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
+  const configService = app.get(ConfigService<AppConfig, true>);
+  app.enableCors({ origin: configService.get('corsOrigins', { infer: true }) });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -19,7 +22,6 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new AllExceptionsFilter());
 
-  const configService = app.get(ConfigService<AppConfig, true>);
   const nodeEnv = configService.get('nodeEnv', { infer: true });
 
   if (nodeEnv !== 'production') {
