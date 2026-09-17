@@ -33,19 +33,19 @@ export function StatusBreakdownBar({ title, segments }: StatusBreakdownBarProps)
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-sm text-text-muted">{title}</h3>
+        <h3 className="text-sm font-medium text-text-secondary">{title}</h3>
         <span className="font-mono text-sm text-text-primary">{total}</span>
       </div>
 
       {total === 0 ? (
-        <div className="h-2.5 rounded-full bg-border" />
+        <div className="h-2 rounded-full bg-bg-elevated" />
       ) : (
-        <div className="flex h-2.5 gap-0.5">
+        <div className="flex h-2 gap-0.5">
           {visibleSegments.map((segment) => (
             <div
               key={segment.key}
               title={`${segment.label}: ${segment.value}`}
-              className={`h-full rounded-full ${SEGMENT_BG_CLASS[segment.colorKey]}`}
+              className={`h-full rounded-full transition-[width] duration-300 ${SEGMENT_BG_CLASS[segment.colorKey]}`}
               style={{ width: `${(segment.value / total) * 100}%` }}
             />
           ))}

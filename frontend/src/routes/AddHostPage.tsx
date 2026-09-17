@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateHost } from '../hooks/useHosts';
 import { Card } from '../components/Card';
+import { TextField } from '../components/TextField';
 import { ApiError } from '../lib/apiClient';
 import { isPlausibleIpAddress } from '../lib/ipAddress';
 import type { HostProvider } from '../lib/types';
@@ -17,6 +18,9 @@ const PROVIDERS: HostProvider[] = [
 ];
 
 const DEFAULT_SSH_PORT = 22;
+
+const SELECT_CLASS =
+  'rounded-lg border border-border bg-bg-base px-3.5 py-2.5 text-sm text-text-primary outline-none transition-colors duration-150 hover:border-border-strong focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25';
 
 export function AddHostPage() {
   const navigate = useNavigate();
@@ -34,7 +38,7 @@ export function AddHostPage() {
     setValidationError(null);
 
     if (name.trim().length === 0) {
-      setValidationError('Name is required.');
+      setValidationError('Give this host a name so you can recognize it later.');
       return;
     }
     if (!isPlausibleIpAddress(ipAddress)) {
@@ -69,7 +73,13 @@ export function AddHostPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl text-text-primary">Add host</h1>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Add host</h1>
+        <p className="text-sm text-text-muted">
+          We'll generate a dedicated SSH keypair for this host - you'll never handle a private key
+          directly.
+        </p>
+      </div>
 
       <Card className="max-w-md p-6">
         <form
@@ -77,24 +87,22 @@ export function AddHostPage() {
           noValidate
           className="flex flex-col gap-4"
         >
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">Name</span>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="prod-web-01"
-              className="rounded border border-border bg-bg-base px-3 py-2 font-mono text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="Name"
+            type="text"
+            required
+            mono
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="prod-web-01"
+          />
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">Provider</span>
+            <span className="text-sm font-medium text-text-secondary">Provider</span>
             <select
               value={provider}
               onChange={(event) => setProvider(event.target.value as HostProvider)}
-              className="rounded border border-border bg-bg-base px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
+              className={SELECT_CLASS}
             >
               {PROVIDERS.map((p) => (
                 <option key={p} value={p}>
@@ -104,51 +112,49 @@ export function AddHostPage() {
             </select>
           </label>
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">IP address</span>
-            <input
-              type="text"
-              required
-              value={ipAddress}
-              onChange={(event) => setIpAddress(event.target.value)}
-              placeholder="203.0.113.10"
-              className="rounded border border-border bg-bg-base px-3 py-2 font-mono text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="IP address"
+            type="text"
+            required
+            mono
+            value={ipAddress}
+            onChange={(event) => setIpAddress(event.target.value)}
+            placeholder="203.0.113.10"
+          />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">SSH port</span>
-            <input
-              type="number"
-              required
-              min={1}
-              max={65535}
-              value={sshPort}
-              onChange={(event) => setSshPort(event.target.value)}
-              className="rounded border border-border bg-bg-base px-3 py-2 font-mono text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="SSH port"
+            type="number"
+            required
+            mono
+            min={1}
+            max={65535}
+            value={sshPort}
+            onChange={(event) => setSshPort(event.target.value)}
+          />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">SSH user</span>
-            <input
-              type="text"
-              required
-              value={sshUser}
-              onChange={(event) => setSshUser(event.target.value)}
-              placeholder="ubuntu"
-              className="rounded border border-border bg-bg-base px-3 py-2 font-mono text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="SSH user"
+            type="text"
+            required
+            mono
+            value={sshUser}
+            onChange={(event) => setSshUser(event.target.value)}
+            placeholder="ubuntu"
+          />
 
-          {error && <p className="text-sm text-status-critical">{error}</p>}
+          {error && (
+            <p className="rounded-lg bg-status-critical/10 px-3 py-2 text-sm text-status-critical">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
             disabled={createHost.isPending}
-            className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-bg-base hover:bg-accent/90 disabled:opacity-50"
+            className="mt-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-card transition-colors duration-150 hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {createHost.isPending ? 'Adding host...' : 'Add host'}
+            {createHost.isPending ? 'Adding host…' : 'Add host'}
           </button>
         </form>
       </Card>

@@ -1,6 +1,5 @@
-@import '@fontsource-variable/instrument-sans';
-@import '@fontsource/spline-sans-mono/400.css';
-@import '@fontsource/spline-sans-mono/500.css';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
 
 @tailwind base;
 @tailwind components;
@@ -8,17 +7,21 @@
 
 :root {
   /* RGB triplets (not hex) so Tailwind's opacity modifiers (bg-accent/15) work. */
-  --bg-base: 14 20 32; /* #0e1420 */
-  --bg-panel: 22 30 46; /* #161e2e */
-  --border: 42 53 72; /* #2a3548 */
-  --text-primary: 231 235 242; /* #e7ebf2 */
-  --text-muted: 138 148 166; /* #8a94a6 */
-  --accent: 108 140 255; /* #6c8cff */
+  --bg-base: 11 14 20; /* #0b0e14 */
+  --bg-panel: 20 25 36; /* #141924 */
+  --bg-elevated: 27 33 46; /* #1b212e */
+  --border: 35 42 56; /* #232a38 */
+  --border-strong: 47 56 74; /* #2f384a */
+  --text-primary: 237 239 243; /* #edeff3 */
+  --text-secondary: 184 191 204; /* #b8bfcc */
+  --text-muted: 124 133 152; /* #7c8598 */
+  --accent: 99 102 241; /* #6366f1 */
+  --accent-strong: 129 132 247; /* #8184f7 */
 
-  --status-healthy: 127 227 160; /* #7fe3a0 */
-  --status-warning: 227 168 87; /* #e3a857 */
-  --status-critical: 217 72 63; /* #d9483f */
-  --status-unknown: 91 100 120; /* #5b6478 */
+  --status-healthy: 52 211 153; /* #34d399 */
+  --status-warning: 251 191 36; /* #fbbf24 */
+  --status-critical: 248 113 113; /* #f87171 */
+  --status-unknown: 148 163 184; /* #94a3b8 */
 }
 
 * {
@@ -35,15 +38,69 @@ body {
   margin: 0;
   background-color: rgb(var(--bg-base));
   color: rgb(var(--text-primary));
-  font-family: 'Instrument Sans Variable', system-ui, sans-serif;
+  font-family: 'Inter Variable', system-ui, sans-serif;
   font-size: 0.9375rem;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Visible keyboard focus on every interactive element - never suppressed. */
 :focus-visible {
-  outline: 2px solid rgb(var(--accent));
+  outline: 2px solid rgb(var(--accent-strong));
   outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background-color: rgb(var(--accent) / 0.35);
+  color: rgb(var(--text-primary));
+}
+
+/* A calm, subtle scrollbar that fits the dark surface instead of the browser default. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--border-strong));
+  border-radius: 9999px;
+  border: 2px solid rgb(var(--bg-base));
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--text-muted));
+}
+
+@keyframes pulse-skeleton {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.skeleton {
+  animation: pulse-skeleton 1.6s ease-in-out infinite;
+  background-color: rgb(var(--bg-elevated));
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in-up 0.25s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {

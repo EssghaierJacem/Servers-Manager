@@ -35,7 +35,9 @@ describe('AddHostPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add host' }));
 
-    expect(screen.getByText('Name is required.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Give this host a name so you can recognize it later.'),
+    ).toBeInTheDocument();
     expect(apiClient.post).not.toHaveBeenCalled();
   });
 

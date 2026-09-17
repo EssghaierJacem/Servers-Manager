@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom';
 import { useHosts } from '../hooks/useHosts';
 import { AsyncBoundary } from '../components/AsyncBoundary';
 import { Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
 import { StatusDot } from '../components/StatusDot';
 import { BoardTable } from '../components/BoardTable';
-import { PlusIcon } from '../components/icons';
+import { HostsIcon, PlusIcon } from '../components/icons';
 import { formatTimestamp } from '../lib/formatters';
 
 export function HostsListPage() {
@@ -12,13 +13,18 @@ export function HostsListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl text-text-primary">
-          Hosts <span className="text-text-muted">({hosts.data?.length ?? 0})</span>
-        </h1>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+            Hosts <span className="text-text-muted">({hosts.data?.length ?? 0})</span>
+          </h1>
+          <p className="text-sm text-text-muted">
+            Every server connected to Servers-Manager, and its live SSH health.
+          </p>
+        </div>
         <Link
           to="/hosts/new"
-          className="flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-bg-base hover:bg-accent/90"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2.5 text-sm font-medium text-white shadow-card transition-colors duration-150 hover:bg-accent-strong"
         >
           <PlusIcon className="h-4 w-4" />
           Add host
@@ -30,13 +36,30 @@ export function HostsListPage() {
           {(rows) => (
             <BoardTable
               rows={rows}
-              emptyLabel="No hosts registered yet."
+              emptyState={
+                <EmptyState
+                  icon={<HostsIcon className="h-full w-full" />}
+                  title="No hosts yet"
+                  description="Connect your first server to start monitoring its health, containers, and deployments."
+                  action={
+                    <Link
+                      to="/hosts/new"
+                      className="mt-1 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-accent-strong"
+                    >
+                      Add your first host
+                    </Link>
+                  }
+                />
+              }
               keyFn={(h) => h.id}
               columns={[
                 {
                   header: 'Name',
                   render: (h) => (
-                    <Link to={`/hosts/${h.id}`} className="font-mono text-accent">
+                    <Link
+                      to={`/hosts/${h.id}`}
+                      className="font-mono font-medium text-text-primary hover:text-accent"
+                    >
                       {h.name}
                     </Link>
                   ),

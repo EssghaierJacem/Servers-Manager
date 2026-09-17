@@ -71,7 +71,7 @@ export function PressHoldButton({
         }
       }}
       onBlur={cancel}
-      className="relative isolate select-none overflow-hidden rounded border border-status-critical px-5 py-2.5 font-mono text-sm text-text-primary disabled:cursor-not-allowed disabled:opacity-40"
+      className="relative isolate select-none overflow-hidden rounded-lg border border-status-critical/50 px-5 py-2.5 text-sm font-medium text-text-primary transition-colors duration-150 hover:border-status-critical disabled:cursor-not-allowed disabled:opacity-40"
     >
       <span
         aria-hidden="true"

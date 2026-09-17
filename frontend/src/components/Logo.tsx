@@ -55,8 +55,8 @@ export function LogoMark({ className }: LogoProps) {
 export function Logo({ className }: LogoProps) {
   return (
     <span className={`inline-flex items-center gap-2 text-text-primary ${className ?? ''}`}>
-      <LogoMark className="h-5 w-5 text-text-muted" />
-      <span className="font-mono text-sm tracking-normal">Servers-Manager</span>
+      <LogoMark className="h-6 w-6 text-accent" />
+      <span className="text-[15px] font-semibold tracking-tight">Servers-Manager</span>
     </span>
   );
 }

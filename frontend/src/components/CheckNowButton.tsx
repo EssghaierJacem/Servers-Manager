@@ -10,14 +10,14 @@ export function CheckNowButton({
   onCheck,
   isPending,
   label = 'Check now',
-  pendingLabel = 'Checking...',
+  pendingLabel = 'Checking…',
 }: CheckNowButtonProps) {
   return (
     <button
       type="button"
       onClick={onCheck}
       disabled={isPending}
-      className="rounded border border-border px-3 py-1.5 text-sm text-text-primary hover:border-accent disabled:opacity-50"
+      className="rounded-lg border border-border bg-bg-panel px-3.5 py-2 text-sm font-medium text-text-primary transition-colors duration-150 hover:border-border-strong hover:bg-bg-elevated disabled:cursor-not-allowed disabled:opacity-50"
     >
       {isPending ? pendingLabel : label}
     </button>

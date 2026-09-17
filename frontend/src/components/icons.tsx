@@ -61,3 +61,29 @@ export function PlusIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function InboxIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <path d="M3 12h4.5l1.5 3h6l1.5-3H21" />
+      <path d="M5.5 6h13l2 6.5V18a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2v-5.5L5.5 6Z" />
+    </svg>
+  );
+}
+
+export function ChevronLeftIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+export function ClockIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  );
+}

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../lib/apiClient';
 import { Logo } from '../components/Logo';
 import { Card } from '../components/Card';
+import { TextField } from '../components/TextField';
 
 export function SignupPage() {
   const { register, isAuthenticated } = useAuth();
@@ -39,66 +40,68 @@ export function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center bg-bg-base px-4">
       <Card className="w-full max-w-sm p-8">
-        <div className="mb-6">
-          <Logo className="mb-3" />
-          <p className="text-sm text-text-muted">Create an account to get started.</p>
+        <div className="mb-7">
+          <Logo className="mb-4" />
+          <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+            Create your account
+          </h1>
+          <p className="mt-1 text-sm text-text-muted">
+            Start monitoring hosts, domains, and deployments in minutes.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">Email</span>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="rounded border border-border bg-bg-base px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="Email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">Password</span>
-            <input
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="rounded border border-border bg-bg-base px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="Password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
 
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-text-muted">Confirm password</span>
-            <input
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              className="rounded border border-border bg-bg-base px-3 py-2 text-sm text-text-primary outline-none focus-visible:border-accent"
-            />
-          </label>
+          <TextField
+            label="Confirm password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
 
-          {error && <p className="text-sm text-status-critical">{error}</p>}
+          {error && (
+            <p className="rounded-lg bg-status-critical/10 px-3 py-2 text-sm text-status-critical">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-bg-base hover:bg-accent/90 disabled:opacity-50"
+            className="mt-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-card transition-colors duration-150 hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? 'Creating account...' : 'Create account'}
+            {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
-        <p className="mt-6 text-sm text-text-muted">
+        <p className="mt-6 text-center text-sm text-text-muted">
           Already have an account?{' '}
-          <Link to="/login" className="text-accent">
+          <Link to="/login" className="font-medium text-accent hover:text-accent-strong">
             Sign in
           </Link>
         </p>
