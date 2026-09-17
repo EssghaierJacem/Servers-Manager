@@ -166,6 +166,30 @@ export interface RollbackTriggeredResponse {
   rollback_event_id: string;
 }
 
+export type AlertEntityType =
+  'host' | 'domain' | 'ssl_certificate' | 'service' | 'rollback_event' | 'system';
+export type AlertChannel = 'slack' | 'email';
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  entity_type: AlertEntityType;
+  condition: string;
+  channel: AlertChannel;
+  cooldown_minutes: number;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface CreateAlertRuleRequest {
+  name: string;
+  entity_type: AlertEntityType;
+  condition: string;
+  channel: AlertChannel;
+  channel_config: Record<string, unknown>;
+  cooldown_minutes?: number;
+}
+
 export interface AuthenticatedUser {
   id: string;
   orgId: string;

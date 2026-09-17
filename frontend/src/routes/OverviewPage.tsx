@@ -27,7 +27,7 @@ function upcomingExpirations(domains: Domain[]): Domain[] {
 
 function OverviewSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i} className="p-5">
@@ -56,8 +56,8 @@ export function OverviewPage() {
   const services = useAllServices(hosts.data);
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1.5">
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Overview</h1>
         <p className="text-sm text-text-muted">
           A live snapshot of every host, domain, and service you're monitoring.
@@ -196,7 +196,9 @@ export function OverviewPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="flex flex-col lg:col-span-2">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
-            <h2 className="font-medium text-text-primary">Hosts</h2>
+            <h2 className="font-medium text-text-primary">
+              Hosts <span className="text-text-muted">({hosts.data?.length ?? 0})</span>
+            </h2>
             <Link
               to="/hosts"
               className="text-sm font-medium text-accent transition-colors hover:text-accent-strong"
@@ -291,8 +293,15 @@ export function OverviewPage() {
 
       <Card className="flex flex-col">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="font-medium text-text-primary">Services</h2>
-          <span className="text-sm text-text-muted">{services.data?.length ?? 0} total</span>
+          <h2 className="font-medium text-text-primary">
+            Services <span className="text-text-muted">({services.data?.length ?? 0})</span>
+          </h2>
+          <Link
+            to="/services"
+            className="text-sm font-medium text-accent transition-colors hover:text-accent-strong"
+          >
+            View all →
+          </Link>
         </div>
         <AsyncBoundary
           isLoading={services.isLoading}
