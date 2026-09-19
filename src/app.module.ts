@@ -20,6 +20,7 @@ import { RollbackModule } from './rollback/rollback.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { InsightsModule } from './insights/insights.module';
 import { OverviewModule } from './overview/overview.module';
+import { CloudAccountsModule } from './cloud-accounts/cloud-accounts.module';
 import { Organization } from './organizations/entities/organization.entity';
 import { User } from './users/entities/user.entity';
 import { Host } from './hosts/entities/host.entity';
@@ -32,6 +33,7 @@ import { RollbackEvent } from './rollback/entities/rollback-event.entity';
 import { AlertRule } from './alerts/entities/alert-rule.entity';
 import { AlertLog } from './alerts/entities/alert-log.entity';
 import { InsightState } from './insights/entities/insight-state.entity';
+import { CloudAccount } from './cloud-accounts/entities/cloud-account.entity';
 
 @Module({
   imports: [
@@ -58,6 +60,7 @@ import { InsightState } from './insights/entities/insight-state.entity';
           AlertRule,
           AlertLog,
           InsightState,
+          CloudAccount,
         ],
         synchronize: false,
         autoLoadEntities: true,
@@ -88,6 +91,7 @@ import { InsightState } from './insights/entities/insight-state.entity';
     AlertsModule,
     InsightsModule,
     OverviewModule,
+    CloudAccountsModule,
   ],
 })
 export class AppModule {}
