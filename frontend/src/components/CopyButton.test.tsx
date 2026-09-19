@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ReactElement } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { CopyButton } from './CopyButton';
+import { ToastProvider } from '../context/ToastContext';
+
+function renderWithToast(ui: ReactElement) {
+  return render(<ToastProvider>{ui}</ToastProvider>);
+}
 
 describe('CopyButton', () => {
   let writeText: ReturnType<typeof vi.fn>;
@@ -16,7 +22,7 @@ describe('CopyButton', () => {
   });
 
   it('copies the given value and confirms it', async () => {
-    render(<CopyButton value="paste-me" label="Copy command" />);
+    renderWithToast(<CopyButton value="paste-me" label="Copy command" />);
 
     const button = screen.getByRole('button', { name: 'Copy command' });
     await act(async () => {
@@ -29,7 +35,7 @@ describe('CopyButton', () => {
   });
 
   it('reverts to the original label after the confirmation window', async () => {
-    render(<CopyButton value="paste-me" />);
+    renderWithToast(<CopyButton value="paste-me" />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button'));
@@ -45,7 +51,7 @@ describe('CopyButton', () => {
   });
 
   it('is a real button, operable from the keyboard', () => {
-    render(<CopyButton value="paste-me" />);
+    renderWithToast(<CopyButton value="paste-me" />);
 
     const button = screen.getByRole('button');
     expect(button.tagName).toBe('BUTTON');

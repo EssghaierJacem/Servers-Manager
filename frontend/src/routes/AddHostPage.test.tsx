@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AddHostPage } from './AddHostPage';
 import { apiClient } from '../lib/apiClient';
+import { ToastProvider } from '../context/ToastContext';
 
 vi.mock('../lib/apiClient', async () => {
   const actual = await vi.importActual<typeof import('../lib/apiClient')>('../lib/apiClient');
@@ -13,11 +14,13 @@ vi.mock('../lib/apiClient', async () => {
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <AddHostPage />
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <AddHostPage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </ToastProvider>,
   );
 }
 

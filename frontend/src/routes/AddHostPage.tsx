@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCreateHost } from '../hooks/useHosts';
 import { Card } from '../components/Card';
 import { SelectField, TextField } from '../components/TextField';
+import { useToast } from '../context/ToastContext';
 import { ApiError } from '../lib/apiClient';
 import { isPlausibleIpAddress } from '../lib/ipAddress';
 import type { HostProvider } from '../lib/types';
@@ -22,6 +23,7 @@ const DEFAULT_SSH_PORT = 22;
 export function AddHostPage() {
   const navigate = useNavigate();
   const createHost = useCreateHost();
+  const { showToast } = useToast();
 
   const [name, setName] = useState('');
   const [provider, setProvider] = useState<HostProvider>('other');
@@ -60,9 +62,12 @@ export function AddHostPage() {
         ssh_port: port,
         ssh_user: sshUser.trim(),
       });
+      showToast(`${host.name} was added - finish setup to bring it online.`, 'success');
       navigate(`/hosts/${host.id}`, { replace: true });
     } catch (err) {
-      setValidationError(err instanceof ApiError ? err.message : 'Unable to add this host.');
+      const message = err instanceof ApiError ? err.message : 'Unable to add this host.';
+      setValidationError(message);
+      showToast(message, 'error');
     }
   };
 
@@ -146,7 +151,7 @@ export function AddHostPage() {
           <button
             type="submit"
             disabled={createHost.isPending}
-            className="mt-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-card transition-colors duration-150 hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-2 rounded-lg btn-gradient px-4 py-2.5 text-sm font-medium shadow-card transition-all duration-150 ease-smooth hover:-translate-y-px hover:shadow-popover active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
           >
             {createHost.isPending ? 'Adding host…' : 'Add host'}
           </button>

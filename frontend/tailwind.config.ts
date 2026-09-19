@@ -32,6 +32,10 @@ export default {
         DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
         strong: 'rgb(var(--accent-strong) / <alpha-value>)',
       },
+      on: {
+        accent: 'rgb(var(--on-accent) / <alpha-value>)',
+      },
+      highlight: 'rgb(var(--highlight) / <alpha-value>)',
       status: {
         healthy: 'rgb(var(--status-healthy) / <alpha-value>)',
         warning: 'rgb(var(--status-warning) / <alpha-value>)',
@@ -41,6 +45,7 @@ export default {
     },
     fontFamily: {
       sans: ['"Inter Variable"', 'system-ui', 'sans-serif'],
+      heading: ['"Space Grotesk"', '"Inter Variable"', 'system-ui', 'sans-serif'],
       mono: ['"JetBrains Mono Variable"', 'ui-monospace', 'monospace'],
     },
     fontSize: {
@@ -110,8 +115,15 @@ export default {
         },
       },
       boxShadow: {
-        card: '0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5)',
-        popover: '0 4px 12px rgb(0 0 0 / 0.4), 0 16px 40px -16px rgb(0 0 0 / 0.6)',
+        // Color/opacity come from CSS variables that flip per theme (soft and
+        // faint in light mode, tighter and darker in dark mode) - no
+        // component ever needs a dark: variant of these.
+        card: '0 1px 2px rgb(var(--shadow-color) / var(--shadow-opacity-sm)), 0 8px 24px -12px rgb(var(--shadow-color) / var(--shadow-opacity-lg))',
+        popover:
+          '0 4px 12px rgb(var(--shadow-color) / var(--shadow-opacity-sm)), 0 16px 40px -16px rgb(var(--shadow-color) / var(--shadow-opacity-lg))',
+      },
+      transitionTimingFunction: {
+        smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
     },
   },

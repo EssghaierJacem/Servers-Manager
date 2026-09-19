@@ -11,6 +11,7 @@ import { EmptyState } from '../components/EmptyState';
 import { Switch } from '../components/Switch';
 import { SelectField, TextField } from '../components/TextField';
 import { BellIcon, SlackIcon } from '../components/icons';
+import { useToast } from '../context/ToastContext';
 import { ALERT_CONDITION_OPTIONS, findAlertConditionOption } from '../lib/alertConditions';
 import { ApiError } from '../lib/apiClient';
 import { formatTimestamp } from '../lib/formatters';
@@ -27,6 +28,7 @@ export function AlertsPage() {
   const [conditionValue, setConditionValue] = useState(ALERT_CONDITION_OPTIONS[0].value);
   const [cooldownMinutes, setCooldownMinutes] = useState(String(DEFAULT_COOLDOWN_MINUTES));
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const handleConnect = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
@@ -57,8 +59,15 @@ export function AlertsPage() {
         cooldown_minutes: cooldown,
       });
       setWebhookUrl('');
+      showToast(
+        'Slack is connected - you will be notified as soon as this condition fires.',
+        'success',
+      );
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to connect Slack for this alert.');
+      const message =
+        err instanceof ApiError ? err.message : 'Unable to connect Slack for this alert.';
+      setError(message);
+      showToast(message, 'error');
     }
   };
 
@@ -132,7 +141,7 @@ export function AlertsPage() {
           <button
             type="submit"
             disabled={createRule.isPending}
-            className="mt-1 flex w-fit items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-card transition-colors duration-150 hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-1 flex w-fit items-center gap-2 rounded-lg btn-gradient px-4 py-2.5 text-sm font-medium shadow-card transition-all duration-150 ease-smooth hover:-translate-y-px hover:shadow-popover active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
           >
             <SlackIcon className="h-4 w-4" />
             {createRule.isPending ? 'Connecting…' : 'Connect to Slack'}
@@ -203,15 +212,21 @@ export function AlertsPage() {
                           checked={rule.enabled}
                           disabled={setEnabled.isPending}
                           label={`${rule.enabled ? 'Disable' : 'Enable'} ${rule.name}`}
-                          onChange={(enabled) => setEnabled.mutate({ id: rule.id, enabled })}
+                          onChange={(enabled) => {
+                            setEnabled.mutate({ id: rule.id, enabled });
+                            showToast(`${rule.name} ${enabled ? 'enabled' : 'disabled'}`, 'info');
+                          }}
                         />
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <button
                           type="button"
-                          onClick={() => deleteRule.mutate(rule.id)}
+                          onClick={() => {
+                            deleteRule.mutate(rule.id);
+                            showToast(`${rule.name} removed`, 'info');
+                          }}
                           disabled={deleteRule.isPending}
-                          className="text-sm text-text-muted transition-colors duration-150 hover:text-status-critical disabled:cursor-not-allowed disabled:opacity-50"
+                          className="text-sm text-text-muted transition-colors duration-150 ease-smooth hover:text-status-critical active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Remove
                         </button>

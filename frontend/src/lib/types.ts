@@ -193,6 +193,7 @@ export interface CreateAlertRuleRequest {
 export interface AuthenticatedUser {
   id: string;
   orgId: string;
+  orgName: string;
   email: string;
   role: string;
 }
