@@ -8,13 +8,18 @@ import {
   Clipboard,
   ClipboardCheck,
   Clock,
+  Cloud,
   ExclamationTriangleFill,
   Globe2,
   Inbox,
   InfoCircleFill,
   MoonStarsFill,
+  PatchCheckFill,
+  PlugFill,
   PlusLg,
+  Receipt,
   Server,
+  ShieldLock,
   Speedometer2,
   SunFill,
   XLg,
@@ -75,6 +80,26 @@ export function MoonIcon({ className }: IconProps) {
 
 export function BuildingIcon({ className }: IconProps) {
   return <Building className={className} />;
+}
+
+export function CertificateIcon({ className }: IconProps) {
+  return <PatchCheckFill className={className} />;
+}
+
+export function LockIcon({ className }: IconProps) {
+  return <ShieldLock className={className} />;
+}
+
+export function InvoicesIcon({ className }: IconProps) {
+  return <Receipt className={className} />;
+}
+
+export function CloudIcon({ className }: IconProps) {
+  return <Cloud className={className} />;
+}
+
+export function PlugIcon({ className }: IconProps) {
+  return <PlugFill className={className} />;
 }
 
 export function CopyIcon({ className }: IconProps) {
