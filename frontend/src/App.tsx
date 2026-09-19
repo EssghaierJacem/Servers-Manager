@@ -12,6 +12,8 @@ import { DomainDetailPage } from './routes/DomainDetailPage';
 import { ServiceDetailPage } from './routes/ServiceDetailPage';
 import { ServicesListPage } from './routes/ServicesListPage';
 import { AlertsPage } from './routes/AlertsPage';
+import { CertificatesPage } from './routes/CertificatesPage';
+import { InvoicesPage } from './routes/InvoicesPage';
 
 export function App() {
   return (
@@ -31,8 +33,10 @@ export function App() {
         <Route path="/hosts/:id" element={<HostDetailPage />} />
         <Route path="/domains" element={<DomainsListPage />} />
         <Route path="/domains/:id" element={<DomainDetailPage />} />
+        <Route path="/certificates" element={<CertificatesPage />} />
         <Route path="/services" element={<ServicesListPage />} />
         <Route path="/services/:id" element={<ServiceDetailPage />} />
+        <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/alerts" element={<AlertsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

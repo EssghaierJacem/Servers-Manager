@@ -158,6 +158,51 @@ export interface Overview {
   orphaned_hosts_count: number;
 }
 
+export interface IdleHost {
+  id: string;
+  name: string;
+  ip_address: string;
+  last_checked_at: string | null;
+  created_at: string;
+}
+
+export interface OrphanedDomain {
+  id: string;
+  hostname: string;
+  host_id: string | null;
+  resolved_ip: string | null;
+}
+
+export interface OrphanedHost {
+  id: string;
+  name: string;
+  ip_address: string;
+}
+
+export interface Insights {
+  idle_hosts: IdleHost[];
+  orphaned_domains: OrphanedDomain[];
+  orphaned_hosts: OrphanedHost[];
+}
+
+export type CloudProvider = 'vercel' | 'render' | 'aws' | 'azure' | 'gcp' | 'ovh' | 'cloudflare';
+
+export interface CloudAccount {
+  id: string | null;
+  provider: CloudProvider;
+  provider_label: string;
+  connected: boolean;
+  label: string | null;
+  connected_at: string | null;
+  monthly_cost_usd: number | null;
+}
+
+export interface ConnectCloudAccountRequest {
+  provider: CloudProvider;
+  label: string;
+  apiKey: string;
+}
+
 export interface CheckTriggeredResponse {
   job_id: string;
 }
