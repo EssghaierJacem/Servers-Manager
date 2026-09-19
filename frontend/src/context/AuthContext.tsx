@@ -9,7 +9,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isInitializing: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, organizationName: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -76,8 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(me);
   };
 
-  const register = async (email: string, password: string): Promise<void> => {
-    await apiClient.post('/auth/register', { email, password }, { skipAuth: true });
+  const register = async (
+    email: string,
+    password: string,
+    organizationName: string,
+  ): Promise<void> => {
+    await apiClient.post(
+      '/auth/register',
+      { email, password, organizationName },
+      { skipAuth: true },
+    );
     await login(email, password);
   };
 

@@ -3,6 +3,7 @@ import { UserRole } from '../../common/constants/roles.constant';
 export interface AuthenticatedUser {
   id: string;
   orgId: string;
+  orgName: string;
   email: string;
   role: UserRole;
 }
@@ -10,6 +11,7 @@ export interface AuthenticatedUser {
 export interface JwtAccessPayload {
   sub: string;
   orgId: string;
+  orgName: string;
   email: string;
   role: UserRole;
 }

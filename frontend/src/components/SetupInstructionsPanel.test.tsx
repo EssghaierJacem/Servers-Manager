@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SetupInstructionsPanel } from './SetupInstructionsPanel';
 import { apiClient } from '../lib/apiClient';
+import { ToastProvider } from '../context/ToastContext';
 import type { HealthCheckLog } from '../lib/types';
 
 vi.mock('../lib/apiClient', async () => {
@@ -16,9 +17,11 @@ vi.mock('../lib/apiClient', async () => {
 function renderPanel(lastLog?: HealthCheckLog) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <SetupInstructionsPanel hostId="host-1" hostName="prod-web-01" lastLog={lastLog} />
-    </QueryClientProvider>,
+    <ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <SetupInstructionsPanel hostId="host-1" hostName="prod-web-01" lastLog={lastLog} />
+      </QueryClientProvider>
+    </ToastProvider>,
   );
 }
 

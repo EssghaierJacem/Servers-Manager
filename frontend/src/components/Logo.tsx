@@ -45,9 +45,30 @@ export function LogoMark({ className }: LogoProps) {
         stroke="currentColor"
         strokeWidth="1.4"
       />
-      <circle cx="5.5" cy="5.25" r="1.15" fill="rgb(var(--accent))" />
-      <circle cx="5.5" cy="12" r="1.15" fill="rgb(var(--accent))" />
-      <circle cx="5.5" cy="18.75" r="1.15" fill="rgb(var(--accent))" />
+      <circle
+        cx="5.5"
+        cy="5.25"
+        r="1.15"
+        fill="rgb(var(--highlight))"
+        className="animate-led-pulse"
+        style={{ animationDelay: '0s' }}
+      />
+      <circle
+        cx="5.5"
+        cy="12"
+        r="1.15"
+        fill="rgb(var(--highlight))"
+        className="animate-led-pulse"
+        style={{ animationDelay: '0.4s' }}
+      />
+      <circle
+        cx="5.5"
+        cy="18.75"
+        r="1.15"
+        fill="rgb(var(--highlight))"
+        className="animate-led-pulse"
+        style={{ animationDelay: '0.8s' }}
+      />
     </svg>
   );
 }
@@ -56,7 +77,7 @@ export function Logo({ className }: LogoProps) {
   return (
     <span className={`inline-flex items-center gap-2 text-text-primary ${className ?? ''}`}>
       <LogoMark className="h-6 w-6 text-accent" />
-      <span className="text-[15px] font-semibold tracking-tight">Servers-Manager</span>
+      <span className="font-heading text-[15px] font-semibold tracking-tight">Servers-Manager</span>
     </span>
   );
 }

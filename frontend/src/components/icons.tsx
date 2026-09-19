@@ -1,113 +1,107 @@
+import {
+  Bell,
+  Boxes,
+  BoxArrowRight,
+  Building,
+  CheckCircleFill,
+  ChevronLeft,
+  Clipboard,
+  ClipboardCheck,
+  Clock,
+  ExclamationTriangleFill,
+  Globe2,
+  Inbox,
+  InfoCircleFill,
+  MoonStarsFill,
+  PlusLg,
+  Server,
+  Speedometer2,
+  SunFill,
+  XLg,
+} from 'react-bootstrap-icons';
+
 interface IconProps {
   className?: string;
 }
 
-const BASE_PROPS = {
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.75,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-};
-
+/** Every icon in the app is a real Bootstrap Icon, sized/colored via className like any other SVG. */
 export function OverviewIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <rect x="3" y="3" width="7" height="9" rx="1.5" />
-      <rect x="14" y="3" width="7" height="5" rx="1.5" />
-      <rect x="14" y="12" width="7" height="9" rx="1.5" />
-      <rect x="3" y="16" width="7" height="5" rx="1.5" />
-    </svg>
-  );
+  return <Speedometer2 className={className} />;
 }
 
 export function HostsIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <rect x="3" y="4" width="18" height="6" rx="1.5" />
-      <rect x="3" y="14" width="18" height="6" rx="1.5" />
-      <circle cx="7" cy="7" r="0.75" fill="currentColor" stroke="none" />
-      <circle cx="7" cy="17" r="0.75" fill="currentColor" stroke="none" />
-    </svg>
-  );
+  return <Server className={className} />;
 }
 
 export function DomainsIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18" />
-      <path d="M12 3c2.5 2.5 3.75 5.75 3.75 9s-1.25 6.5-3.75 9c-2.5-2.5-3.75-5.75-3.75-9S9.5 5.5 12 3Z" />
-    </svg>
-  );
+  return <Globe2 className={className} />;
 }
 
 export function SignOutIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <path d="M15 17l5-5-5-5" />
-      <path d="M20 12H9" />
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    </svg>
-  );
+  return <BoxArrowRight className={className} />;
 }
 
 export function PlusIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
-  );
+  return <PlusLg className={className} />;
 }
 
 export function InboxIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <path d="M3 12h4.5l1.5 3h6l1.5-3H21" />
-      <path d="M5.5 6h13l2 6.5V18a2 2 0 0 1-2 2H5.5a2 2 0 0 1-2-2v-5.5L5.5 6Z" />
-    </svg>
-  );
+  return <Inbox className={className} />;
 }
 
 export function ChevronLeftIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <path d="M15 18l-6-6 6-6" />
-    </svg>
-  );
+  return <ChevronLeft className={className} />;
 }
 
 export function ClockIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3.5 2" />
-    </svg>
-  );
+  return <Clock className={className} />;
 }
 
 export function ServicesIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <rect x="3" y="3" width="8" height="8" rx="1.5" />
-      <rect x="13" y="3" width="8" height="8" rx="1.5" />
-      <rect x="3" y="13" width="8" height="8" rx="1.5" />
-      <rect x="13" y="13" width="8" height="8" rx="1.5" />
-    </svg>
-  );
+  return <Boxes className={className} />;
 }
 
 export function BellIcon({ className }: IconProps) {
-  return (
-    <svg {...BASE_PROPS} className={className}>
-      <path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Z" />
-      <path d="M10 19a2 2 0 0 0 4 0" />
-    </svg>
-  );
+  return <Bell className={className} />;
 }
 
+export function SunIcon({ className }: IconProps) {
+  return <SunFill className={className} />;
+}
+
+export function MoonIcon({ className }: IconProps) {
+  return <MoonStarsFill className={className} />;
+}
+
+export function BuildingIcon({ className }: IconProps) {
+  return <Building className={className} />;
+}
+
+export function CopyIcon({ className }: IconProps) {
+  return <Clipboard className={className} />;
+}
+
+export function CopyCheckIcon({ className }: IconProps) {
+  return <ClipboardCheck className={className} />;
+}
+
+export function ToastSuccessIcon({ className }: IconProps) {
+  return <CheckCircleFill className={className} />;
+}
+
+export function ToastErrorIcon({ className }: IconProps) {
+  return <ExclamationTriangleFill className={className} />;
+}
+
+export function ToastInfoIcon({ className }: IconProps) {
+  return <InfoCircleFill className={className} />;
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return <XLg className={className} />;
+}
+
+/** The Slack mark keeps its real brand colors rather than following currentColor. */
 export function SlackIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none">

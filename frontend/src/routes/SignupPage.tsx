@@ -9,6 +9,7 @@ import { TextField } from '../components/TextField';
 export function SignupPage() {
   const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [organizationName, setOrganizationName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,7 +31,7 @@ export function SignupPage() {
 
     setIsSubmitting(true);
     try {
-      await register(email, password);
+      await register(email, password, organizationName);
       navigate('/', { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Unable to create an account.');
@@ -40,9 +41,19 @@ export function SignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg-base px-4">
-      <Card className="w-full max-w-sm p-8">
-        <div className="mb-7">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg-base px-4">
+      <div
+        aria-hidden="true"
+        className="animate-blob pointer-events-none absolute -right-24 -top-20 h-72 w-72 rounded-full bg-highlight/15 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="animate-blob pointer-events-none absolute -bottom-28 -left-16 h-80 w-80 rounded-full bg-accent/25 blur-3xl"
+        style={{ animationDelay: '4s' }}
+      />
+
+      <Card className="animate-card-in relative w-full max-w-sm p-8">
+        <div className="animate-field-in mb-7" style={{ animationDelay: '0.05s' }}>
           <Logo className="mb-4" />
           <h1 className="text-xl font-semibold tracking-tight text-text-primary">
             Create your account
@@ -53,39 +64,59 @@ export function SignupPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <TextField
-            label="Email"
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="you@company.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
+          <div className="animate-field-in" style={{ animationDelay: '0.1s' }}>
+            <TextField
+              label="Organization name"
+              type="text"
+              required
+              minLength={2}
+              maxLength={100}
+              autoComplete="organization"
+              placeholder="Acme Corp"
+              value={organizationName}
+              onChange={(event) => setOrganizationName(event.target.value)}
+            />
+          </div>
 
-          <TextField
-            label="Password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
+          <div className="animate-field-in" style={{ animationDelay: '0.15s' }}>
+            <TextField
+              label="Email"
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
 
-          <TextField
-            label="Confirm password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-          />
+          <div className="animate-field-in" style={{ animationDelay: '0.2s' }}>
+            <TextField
+              label="Password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </div>
+
+          <div className="animate-field-in" style={{ animationDelay: '0.25s' }}>
+            <TextField
+              label="Confirm password"
+              type="password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+            />
+          </div>
 
           {error && (
-            <p className="rounded-lg bg-status-critical/10 px-3 py-2 text-sm text-status-critical">
+            <p className="animate-shake rounded-lg bg-status-critical/10 px-3 py-2 text-sm text-status-critical">
               {error}
             </p>
           )}
@@ -93,13 +124,17 @@ export function SignupPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white shadow-card transition-colors duration-150 hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
+            className="animate-field-in mt-2 rounded-lg btn-gradient px-4 py-2.5 text-sm font-medium shadow-card transition-all duration-150 ease-smooth hover:-translate-y-px hover:shadow-popover active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+            style={{ animationDelay: '0.3s' }}
           >
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-text-muted">
+        <p
+          className="animate-field-in mt-6 text-center text-sm text-text-muted"
+          style={{ animationDelay: '0.35s' }}
+        >
           Already have an account?{' '}
           <Link to="/login" className="font-medium text-accent hover:text-accent-strong">
             Sign in

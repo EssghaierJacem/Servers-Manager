@@ -24,7 +24,7 @@ export function HostsListPage() {
         </div>
         <Link
           to="/hosts/new"
-          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2.5 text-sm font-medium text-white shadow-card transition-colors duration-150 hover:bg-accent-strong"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg btn-gradient px-3.5 py-2.5 text-sm font-medium shadow-card transition-all duration-150 ease-smooth hover:-translate-y-px hover:shadow-popover active:translate-y-0"
         >
           <PlusIcon className="h-4 w-4" />
           Add host
@@ -44,7 +44,7 @@ export function HostsListPage() {
                   action={
                     <Link
                       to="/hosts/new"
-                      className="mt-1 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-accent-strong"
+                      className="mt-1 rounded-lg btn-gradient px-3.5 py-2 text-sm font-medium shadow-card transition-all duration-150 ease-smooth hover:-translate-y-px hover:shadow-popover active:translate-y-0"
                     >
                       Add your first host
                     </Link>

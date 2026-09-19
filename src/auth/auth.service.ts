@@ -27,13 +27,13 @@ export class AuthService {
     private readonly configService: ConfigService<AppConfig, true>,
   ) {}
 
-  async register(email: string, password: string): Promise<User> {
+  async register(email: string, password: string, organizationName: string): Promise<User> {
     const existing = await this.usersService.findByEmail(email);
     if (existing) {
       throw new ConflictException('A user with this email already exists');
     }
 
-    const organization = await this.organizationsService.getOrCreateDefault();
+    const organization = await this.organizationsService.create(organizationName);
     const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     return this.usersService.create({
@@ -41,6 +41,14 @@ export class AuthService {
       email,
       passwordHash,
     });
+  }
+
+  async getOrganizationName(orgId: string): Promise<string> {
+    const organization = await this.organizationsService.findById(orgId);
+    if (!organization) {
+      throw new UnauthorizedException('Organization no longer exists');
+    }
+    return organization.name;
   }
 
   async validateCredentials(email: string, password: string): Promise<User> {
@@ -57,10 +65,11 @@ export class AuthService {
     return user;
   }
 
-  issueTokenPair(user: User): TokenPair {
+  issueTokenPair(user: User, orgName: string): TokenPair {
     const accessPayload: JwtAccessPayload = {
       sub: user.id,
       orgId: user.orgId,
+      orgName,
       email: user.email,
       role: user.role,
     };
@@ -97,9 +106,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
+    const orgName = await this.getOrganizationName(user.orgId);
     const accessPayload: JwtAccessPayload = {
       sub: user.id,
       orgId: user.orgId,
+      orgName,
       email: user.email,
       role: user.role,
     };
@@ -112,7 +123,7 @@ export class AuthService {
     return { access_token: accessToken };
   }
 
-  toAuthenticatedUser(user: User): AuthenticatedUser {
-    return { id: user.id, orgId: user.orgId, email: user.email, role: user.role };
+  toAuthenticatedUser(user: User, orgName: string): AuthenticatedUser {
+    return { id: user.id, orgId: user.orgId, orgName, email: user.email, role: user.role };
   }
 }

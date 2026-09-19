@@ -1,27 +1,74 @@
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/600.css';
+@import '@fontsource/space-grotesk/700.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* RGB triplets (not hex) so Tailwind's opacity modifiers (bg-accent/15) work. */
-  --bg-base: 11 14 20; /* #0b0e14 */
-  --bg-panel: 20 25 36; /* #141924 */
-  --bg-elevated: 27 33 46; /* #1b212e */
-  --border: 35 42 56; /* #232a38 */
-  --border-strong: 47 56 74; /* #2f384a */
-  --text-primary: 237 239 243; /* #edeff3 */
-  --text-secondary: 184 191 204; /* #b8bfcc */
-  --text-muted: 124 133 152; /* #7c8598 */
-  --accent: 99 102 241; /* #6366f1 */
-  --accent-strong: 129 132 247; /* #8184f7 */
+  /* RGB triplets (not hex) so Tailwind's opacity modifiers (bg-accent/15) work.
+     This is the single source of truth for both themes - components never
+     branch on theme, they just consume these tokens. Palette matches
+     InvoiceForge's design system (deep forest green + lime accent, warm
+     paper/near-black surfaces) so both apps share one visual identity. */
+  --bg-base: 19 20 23; /* #131417 */
+  --bg-panel: 27 29 33; /* #1b1d21 */
+  --bg-elevated: 34 37 42; /* #22252a */
+  --border: 42 44 48; /* #2a2c30 */
+  --border-strong: 58 61 67; /* #3a3d43 */
+  --text-primary: 250 250 249; /* #fafaf9 */
+  --text-secondary: 156 160 168; /* #9ca0a8 */
+  --text-muted: 110 113 120; /* #6e7178 */
+  --accent: 26 82 64; /* #1a5240 */
+  --accent-strong: 18 63 48; /* #123f30 */
 
-  --status-healthy: 52 211 153; /* #34d399 */
-  --status-warning: 251 191 36; /* #fbbf24 */
-  --status-critical: 248 113 113; /* #f87171 */
-  --status-unknown: 148 163 184; /* #94a3b8 */
+  /* Text placed directly on an accent-colored surface (buttons, chips). */
+  --on-accent: 242 238 225; /* #f2eee1 */
+  /* The signature lime highlight - used sparingly, never as body text. */
+  --highlight: 201 242 108; /* #c9f26c */
+
+  --status-healthy: 22 163 74; /* #16a34a */
+  --status-warning: 217 119 6; /* #d97706 */
+  --status-critical: 220 38 38; /* #dc2626 */
+  --status-unknown: 140 143 150; /* #8c8f96 */
+
+  /* Dark surfaces don't need much shadow (the elevated bg + border already
+     read as "raised"), so shadows stay faint here - just enough to lift a
+     hovered card off the page. */
+  --shadow-color: 0 0 0;
+  --shadow-opacity-sm: 0.25;
+  --shadow-opacity-lg: 0.45;
+}
+
+:root[data-theme='light'] {
+  --bg-base: 245 241 232; /* #f5f1e8 */
+  --bg-panel: 255 255 255; /* #ffffff */
+  --bg-elevated: 243 240 231; /* #f3f0e7 */
+  --border: 229 228 225; /* #e5e4e1 */
+  --border-strong: 209 207 200; /* #d1cfc8 */
+  --text-primary: 19 20 23; /* #131417 */
+  --text-secondary: 91 95 102; /* #5b5f66 */
+  --text-muted: 150 148 140; /* #96948c */
+  --accent: 18 59 45; /* #123b2d */
+  --accent-strong: 13 46 34; /* #0d2e22 */
+
+  --on-accent: 242 238 225; /* #f2eee1 */
+  --highlight: 201 242 108; /* #c9f26c */
+
+  --status-healthy: 22 163 74; /* #16a34a */
+  --status-warning: 217 119 6; /* #d97706 */
+  --status-critical: 220 38 38; /* #dc2626 */
+  --status-unknown: 143 141 133; /* #8f8d85 */
+
+  /* Light surfaces are already bright, so shadows have to do the work
+     borders do in dark mode - soft, warm-tinted, and much lower opacity
+     than a naive black shadow would be (which reads muddy on cream). */
+  --shadow-color: 30 28 20;
+  --shadow-opacity-sm: 0.06;
+  --shadow-opacity-lg: 0.1;
 }
 
 * {
@@ -42,6 +89,18 @@ body {
   font-size: 0.9375rem;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Space Grotesk', 'Inter Variable', system-ui, sans-serif;
 }
 
 /* Visible keyboard focus on every interactive element - never suppressed. */
@@ -56,7 +115,7 @@ body {
   color: rgb(var(--text-primary));
 }
 
-/* A calm, subtle scrollbar that fits the dark surface instead of the browser default. */
+/* A calm, subtle scrollbar that fits the surface instead of the browser default. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -71,6 +130,37 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgb(var(--text-muted));
+}
+
+/* The one signature gradient in the whole system - reserved for primary
+   calls to action (submit buttons, "Connect to Slack") so it stays a
+   highlight, not wallpaper. */
+.btn-gradient {
+  color: rgb(var(--on-accent));
+  background-image: linear-gradient(
+    135deg,
+    rgb(var(--accent)) 0%,
+    rgb(var(--accent-strong)) 100%
+  );
+  background-size: 100% 100%;
+  transition:
+    background-position 0.3s var(--ease-smooth),
+    transform 0.15s var(--ease-smooth),
+    box-shadow 0.15s var(--ease-smooth);
+}
+.btn-gradient:hover {
+  background-image: linear-gradient(
+    135deg,
+    rgb(var(--accent-strong)) 0%,
+    rgb(var(--accent)) 100%
+  );
+}
+.btn-gradient:active {
+  transform: scale(0.98);
+}
+
+:root {
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes pulse-skeleton {
@@ -100,7 +190,95 @@ body {
 }
 
 .animate-fade-in {
-  animation: fade-in-up 0.25s ease-out;
+  animation: fade-in-up 0.25s var(--ease-smooth);
+}
+
+/* Auth-page life: a slightly heavier entrance for the card itself, a
+   staggered per-field reveal, ambient drifting blobs, and a shake for
+   validation errors - all reserved for the login/signup pair. */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-in {
+  animation: card-in 0.55s var(--ease-smooth);
+}
+
+@keyframes field-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-field-in {
+  animation: field-in 0.4s var(--ease-smooth) both;
+}
+
+@keyframes blob-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(24px, -28px) scale(1.08);
+  }
+  66% {
+    transform: translate(-18px, 18px) scale(0.94);
+  }
+}
+
+.animate-blob {
+  animation: blob-float 16s ease-in-out infinite;
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.4s var(--ease-smooth);
+}
+
+@keyframes led-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.animate-led-pulse {
+  animation: led-pulse 2.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
