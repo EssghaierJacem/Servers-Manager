@@ -15,10 +15,10 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register a new user under the default organization' })
+  @ApiOperation({ summary: 'Register a new user under a newly created organization' })
   async register(@Body() dto: RegisterDto): Promise<AuthenticatedUser> {
-    const user = await this.authService.register(dto.email, dto.password);
-    return this.authService.toAuthenticatedUser(user);
+    const user = await this.authService.register(dto.email, dto.password, dto.organizationName);
+    return this.authService.toAuthenticatedUser(user, dto.organizationName);
   }
 
   @Post('login')
@@ -26,7 +26,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Exchange credentials for an access/refresh token pair' })
   async login(@Body() dto: LoginDto): Promise<TokenPairResponseDto> {
     const user = await this.authService.validateCredentials(dto.email, dto.password);
-    return this.authService.issueTokenPair(user);
+    const orgName = await this.authService.getOrganizationName(user.orgId);
+    return this.authService.issueTokenPair(user, orgName);
   }
 
   @Post('refresh')

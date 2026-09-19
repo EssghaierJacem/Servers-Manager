@@ -15,7 +15,7 @@ describe('AuthService', () => {
   let organizationsService: jest.Mocked<OrganizationsService>;
   let jwtService: JwtService;
 
-  const org = { id: 'org-1', name: 'Default Organization', createdAt: new Date() };
+  const org = { id: 'org-1', name: 'Acme Corp', createdAt: new Date() };
 
   beforeEach(() => {
     usersService = {
@@ -25,7 +25,8 @@ describe('AuthService', () => {
     } as unknown as jest.Mocked<UsersService>;
 
     organizationsService = {
-      getOrCreateDefault: jest.fn().mockResolvedValue(org),
+      create: jest.fn().mockResolvedValue(org),
+      findById: jest.fn().mockResolvedValue(org),
     } as unknown as jest.Mocked<OrganizationsService>;
 
     jwtService = new JwtService({});
@@ -48,7 +49,7 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('hashes the password and creates the user under the default org', async () => {
+    it('hashes the password and creates the user under a newly created organization', async () => {
       usersService.findByEmail.mockResolvedValue(null);
       usersService.create.mockImplementation(
         async (input) =>
@@ -62,8 +63,9 @@ describe('AuthService', () => {
           }) as User,
       );
 
-      const user = await authService.register('new@example.com', 'a-strong-password');
+      const user = await authService.register('new@example.com', 'a-strong-password', 'Acme Corp');
 
+      expect(organizationsService.create).toHaveBeenCalledWith('Acme Corp');
       expect(user.orgId).toBe(org.id);
       expect(user.passwordHash).not.toBe('a-strong-password');
       expect(await bcrypt.compare('a-strong-password', user.passwordHash)).toBe(true);
@@ -72,9 +74,9 @@ describe('AuthService', () => {
     it('throws a conflict when the email is already registered', async () => {
       usersService.findByEmail.mockResolvedValue({ id: 'existing' } as User);
 
-      await expect(authService.register('taken@example.com', 'password123')).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        authService.register('taken@example.com', 'password123', 'Acme Corp'),
+      ).rejects.toThrow(ConflictException);
     });
   });
 
@@ -116,7 +118,7 @@ describe('AuthService', () => {
         role: UserRole.ADMIN,
       } as User;
 
-      const tokens = authService.issueTokenPair(user);
+      const tokens = authService.issueTokenPair(user, 'Acme Corp');
 
       expect(
         jwtService.verify(tokens.access_token, { secret: 'access-secret-for-tests' }),
